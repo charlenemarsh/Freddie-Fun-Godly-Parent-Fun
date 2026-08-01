@@ -8,7 +8,21 @@
 
      node build.js
 
-   Never hand-edit index.html — it is generated and will be overwritten.
+   There is a second, optional output for sharing the game as a web page:
+
+     node build.js --artifact [outfile]
+
+   That one emits BODY CONTENT ONLY — no doctype, no <html>, no <head>, no
+   <body> — because the host that publishes it supplies its own document
+   shell. It also leaves out the no-network guard: that guard overwrites
+   window.fetch and friends to throw, which is exactly what you want in a
+   file:// deliverable being tested and exactly what you do not want inside
+   somebody else's page. The guard is a development assertion, not a feature;
+   verify.js is what actually proves the game makes zero requests.
+
+   index.html — the real deliverable — is unaffected and still built by the
+   plain `node build.js`. Never hand-edit it; it is generated and will be
+   overwritten.
    =========================================================================== */
 
 const fs = require('fs');
@@ -86,7 +100,27 @@ const netGuard = `
 })();
 `;
 
-const out = `<!doctype html>
+const artifactMode = process.argv.includes('--artifact');
+
+let out, target;
+
+if (artifactMode) {
+  /* Body content only, and no net guard — see the note at the top. */
+  const after = process.argv[process.argv.indexOf('--artifact') + 1];
+  target = after && !after.startsWith('--') ? after : 'artifact.html';
+  out = `<title>Who's Your Godly Parent?</title>
+<style>
+${css}
+</style>
+<div id="app" aria-live="polite"></div>
+<script>
+"use strict";
+${js}
+</script>
+`;
+} else {
+  target = 'index.html';
+  out = `<!doctype html>
 <html lang="en">
 <head>
 ${head}
@@ -104,8 +138,9 @@ ${js}
 </body>
 </html>
 `;
+}
 
-fs.writeFileSync(path.join(root, 'index.html'), out, 'utf8');
+fs.writeFileSync(path.isAbsolute(target) ? target : path.join(root, target), out, 'utf8');
 
 const kb = (Buffer.byteLength(out, 'utf8') / 1024).toFixed(0);
-console.log(`  built index.html — ${kb} KB, ${JS.length} source files, 0 network requests`);
+console.log(`  built ${target} — ${kb} KB, ${JS.length} source files, 0 network requests`);
