@@ -336,7 +336,10 @@ html, body {
 #satchel {
   position: absolute; top: calc(10px + var(--safe-t)); left: 10px;
   display: flex; flex-wrap: wrap; gap: 5px;
-  max-width: 34vw;
+  max-width: 30vw;
+  /* two rows at most: a full satchel used to wrap down over the realm name */
+  max-height: 71px;
+  overflow: hidden;
 }
 .satchel-item {
   width: 30px; height: 30px;
@@ -524,7 +527,7 @@ html, body {
 .lane-DOWN   .chev { bottom: 4px; left: 50%; transform: translateX(-50%); }
 .lane-LEFT   .chev { left: 5px;   top: 50%;  transform: translateY(-50%); }
 .lane-RIGHT  .chev { right: 5px;  top: 50%;  transform: translateY(-50%); }
-.lane-CENTRE .chev { bottom: 3px; left: 50%; transform: translateX(-50%); font-size: 9px;
+.lane-CENTRE .chev { top: 4px; left: 50%; transform: translateX(-50%); font-size: 9px;
                      letter-spacing: .14em; opacity: .7; }
 
 /* live drag feedback: target lifts and brightens, the others dim */
@@ -598,6 +601,15 @@ html, body {
 .screen-center { min-height: 100%; display: grid; place-items: center; }
 
 /* --- title --- */
+#titleScreen, #selectScreen {
+  background: radial-gradient(75% 60% at 50% 34%, rgba(8, 6, 14, .45), rgba(6, 5, 11, .82));
+}
+/* the world keeps running behind an overlay, but its actors step out of shot */
+.overlay-open #hero,
+.overlay-open #heroShadow,
+.overlay-open #items,
+.overlay-open #npcs { opacity: 0; transition: opacity .4s ease; }
+
 #titleScreen .title-wrap { text-align: center; width: min(92vw, 620px); }
 #titleScreen h1 {
   font-family: var(--display);
@@ -613,6 +625,7 @@ html, body {
   margin-bottom: clamp(18px, 4vh, 34px);
 }
 #titleScreen .crest { width: min(46vw, 210px); margin: 0 auto clamp(10px, 3vh, 26px); }
+#titleScreen .crest svg { width: 100%; height: auto; display: block; }
 
 .btn {
   font-family: var(--display);
@@ -642,6 +655,34 @@ html, body {
   text-align: center;
 }
 #selectScreen .hint { font-size: 14px; color: rgba(240,228,200,.72); text-align: center; }
+#selectScreen h2, #selectScreen .hint { text-shadow: 0 2px 10px rgba(0,0,0,.9); }
+
+/* size the figure off the card, and clip anything that still spills */
+#selLanes .lane { padding-bottom: 20px; }
+#selLanes .lane-CENTRE .chev { display: none; }   /* the label sits there */
+#selLanes .sel-fig {
+  position: absolute;
+  left: 0; right: 0; top: 6%;
+  height: 74%;
+  overflow: hidden;
+  display: grid;
+  place-items: end center;
+}
+/* Size the figure off the box explicitly. A percentage height on an inline
+   SVG does not resolve reliably against a grid-centred parent, and the
+   fallback is the 300x150 default, which is five times too big. */
+#selLanes .sel-fig svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+#selLanes .lbl {
+  position: absolute;
+  left: 0; right: 0; bottom: 5px;
+  font-size: clamp(10px, 2.6vw, 13px);
+}
 .pedestal {
   position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
   width: 76%; height: 13%;
@@ -731,6 +772,7 @@ html, body {
   55%  { opacity: 1; transform: translate(-50%,-50%) scale(1.12) rotate(6deg); }
   100% { opacity: 1; transform: translate(-50%,-50%) scale(1) rotate(0deg); }
 }
+#claimSymbol svg { width: 100%; height: 100%; display: block; }
 #claimSymbol .spin { animation: slowSpin 14s linear infinite; transform-origin: 50% 50%; }
 @keyframes slowSpin { to { transform: rotate(360deg); } }
 
@@ -828,11 +870,12 @@ html, body {
   animation: haloPulse 4.6s ease-in-out infinite alternate;
 }
 @keyframes haloPulse { from { opacity: .38; transform: scale(1); } to { opacity: .68; transform: scale(1.07); } }
-.card-hero .sym { position: absolute; top: 5%; width: 44%; opacity: 1;
+.card-hero .sym { position: absolute; top: 5%; width: 40%; aspect-ratio: 1; opacity: 1;
                   filter: drop-shadow(0 0 18px var(--g-glow, #fff)); }
+.card-hero .sym svg { width: 100%; height: 100%; display: block; }
 .card-hero .sym .spin { animation: slowSpin 22s linear infinite; transform-origin: 50% 50%; }
-.card-hero .fig { position: relative; height: 82%; margin-top: 9%; }
-.card-hero .fig svg { height: 100%; width: auto; }
+.card-hero .fig { position: relative; height: 82%; width: 46%; margin-top: 9%; }
+.card-hero .fig svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 .card-body { padding: 14px clamp(12px, 4vw, 20px) 0; }
 .card-god { font-family: var(--display); font-size: clamp(26px, 7vw, 38px); text-align: center; }
@@ -901,7 +944,8 @@ html, body {
   transition: transform .16s ease, filter .16s ease;
 }
 .codex-cell:hover { transform: translateY(-2px); filter: brightness(1.15); }
-.codex-cell .cs { width: 52px; height: 52px; margin: 0 auto 7px; }
+.codex-cell .cs { position: relative; width: 52px; height: 52px; margin: 0 auto 7px; }
+.codex-cell .cs svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .codex-cell .cn { font-family: var(--display); font-size: 15px; color: #F2E6CC; }
 .codex-cell .cd { font-size: 11.5px; color: rgba(235,225,200,.6); margin-top: 2px; line-height: 1.3; }
 .codex-cell.locked { filter: grayscale(1) brightness(.42); }
@@ -945,6 +989,11 @@ html, body {
 @media (max-width: 359px) {
   :root { --card: clamp(84px, 26.5vw, 104px); --gap: 6px; }
   .lane .lbl { font-size: 9.5px; }
+  .satchel-item { width: 24px; height: 24px; }
+  .satchel-item svg { width: 15px; height: 15px; }
+  #satchel { max-width: 26vw; max-height: 58px; }
+  #realmTag { width: 44vw; }
+  #realmTag .rname { font-size: 10px; letter-spacing: .1em; }
 }
 /* landscape phones: very little vertical room, so the plus drives off vh */
 @media (orientation: landscape) and (max-height: 520px) {
@@ -981,7 +1030,8 @@ html, body {
   filter: drop-shadow(0 10px 18px rgba(0,0,0,.6));
   z-index: 2;
 }
-#claimHero svg { height: 100%; width: auto; display: block; overflow: visible; }
+#claimHero { width: clamp(90px, 22vw, 190px); }
+#claimHero svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #claimSymbol, #claimRing, #claimName, #claimLine { z-index: 3; }
 #claimBeam { z-index: 1; }
 

@@ -583,7 +583,11 @@ function boot() {
     showRealmIntro(beginRunSegment);
   });
   [S.TITLE, S.CHARACTER_SELECT, S.RESULT, S.CODEX, S.CLAIMING].forEach((st) => {
-    onEnter(st, () => D.hud.classList.add('hidden'));
+    onEnter(st, () => {
+      D.hud.classList.add('hidden');
+      document.documentElement.classList.add('overlay-open');
+    });
+    onExit(st, () => document.documentElement.classList.remove('overlay-open'));
   });
   onEnter(S.CLAIMING, () => { G.speed = 0; G.timeScale = 1; });
 

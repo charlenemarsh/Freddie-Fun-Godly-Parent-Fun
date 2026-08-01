@@ -71,7 +71,7 @@ const Select = (function () {
           '<span class="glow"></span>' +
           '<span class="chev" aria-hidden="true">' + Glyph.chevron(h.lane) + '</span>' +
           '<span class="pedestal"></span>' +
-          '<span class="art" style="height:74%">' + Rig.still(k) + '</span>' +
+          '<span class="sel-fig">' + Rig.still(k) + '</span>' +
           '<span class="lbl">' + h.name.split(' ')[0] + '</span>' +
         '</button>';
     });

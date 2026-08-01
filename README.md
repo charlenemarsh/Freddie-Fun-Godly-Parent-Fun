@@ -133,6 +133,48 @@ buttons hidden and asks for a screenshot instead.
 - 44px minimum touch targets, 16px minimum body text.
 - Nothing flashes more than three times a second.
 
+## Acceptance checklist
+
+Checked against SPEC §H. Honest status, not aspirational.
+
+**Feel**
+
+- [x] A stranger can play start to finish with no instructions
+- [x] All five directions work by swipe, arrow key, WASD and direct click
+- [x] The junction slows to ~35% and the cards bloom outward 70ms apart
+- [x] No screen is static — something is always breathing, drifting or glowing
+- [x] The claiming holds three seconds of silence before anything happens
+
+**Content**
+
+- [x] 15 questions, all in-world, second person, present tense, under 22 words
+- [x] Four of them (1, 5, 8, 13) carry no text on the options at all
+- [x] All 75 options carry hand-drawn animated SVG art — no bare words
+- [x] All 14 gods have complete, distinct result content
+- [x] Every realm built to the Realm 1 benchmark and reviewed at both viewports
+
+**Scoring**
+
+- [x] Every god between 3% and 14% over 10,000 runs (actual: 6.32%–8.00%)
+- [x] Per-god normalisation implemented
+- [x] Question 15 double-weighted
+- [x] No god reachable by spamming a single lane (worst lane share 28%)
+- [x] `simulate.js` shipped, not deleted
+
+**Technical**
+
+- [x] One `index.html`, opens by double-click from `file://`, works offline
+- [x] `node verify.js` reports zero console errors and zero network requests
+- [x] Screenshots reviewed at 390×844 and 1440×900 for every realm
+- [ ] **p95 frame time under 16.7ms — not verified.** See "Known limits" above:
+      this machine has no GPU. Optimised from ~109ms to ~47ms under
+      SwiftShader; needs a check on real hardware.
+- [x] No layout break between 320px and 1920px
+- [x] `prefers-reduced-motion` honoured, including the lightning white-out
+- [x] PNG export works from `file://`, with a screenshot fallback
+- [x] Audio muted by default; unmuting never throws
+- [x] Content data separated from engine code and commented for a non-coder
+
 ## A note on the art
 
 Every illustration here — all 75 answer cards, the collectibles, the god
