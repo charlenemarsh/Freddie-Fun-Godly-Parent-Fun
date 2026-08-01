@@ -626,6 +626,9 @@ html, body {
 .overlay-open #heroShadow,
 .overlay-open #items,
 .overlay-open #npcs { opacity: 0; transition: opacity .4s ease; }
+/* the last junction must not still be readable through the claiming, the
+   result card or the Codex */
+.overlay-open #junction { opacity: 0; pointer-events: none; transition: opacity .3s ease; }
 
 #titleScreen .title-wrap { text-align: center; width: min(92vw, 620px); }
 #titleScreen h1 {
@@ -763,6 +766,26 @@ html, body {
 
 #claiming { position: absolute; inset: 0; z-index: 26; display: none; }
 #claiming.on { display: block; }
+
+/* Quiet on purpose. It should be findable by anyone who wants out, and
+   invisible to anyone caught up in the moment. */
+#claimSkip {
+  position: absolute; z-index: 5;
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  bottom: calc(12px + var(--safe-b));
+  min-width: 44px; min-height: 44px;
+  padding: 10px 18px; border-radius: 999px;
+  font: inherit; font-size: 14px; letter-spacing: .08em;
+  color: rgba(240,230,205,.72); cursor: pointer;
+  background: rgba(12,10,18,.55);
+  border: 1px solid rgba(227,178,60,.34);
+  opacity: 0; pointer-events: none;
+  transition: opacity .5s ease, color .2s ease, border-color .2s ease;
+}
+#claimSkip.on { opacity: 1; pointer-events: auto; }
+#claimSkip:hover, #claimSkip:focus-visible {
+  color: var(--gold-lit); border-color: rgba(227,178,60,.75);
+}
 #claimStage { position: absolute; inset: 0; overflow: hidden; }
 #claimStage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 
@@ -933,7 +956,10 @@ html, body {
   box-shadow: inset 0 1px 2px rgba(0,0,0,.5);
 }
 .bar-fill {
-  height: 100%; border-radius: 999px;
+  /* it is a <span>: without this it stays inline, width and height do not
+     apply, and the coloured fill renders at 0x0 — an empty grey track */
+  display: block;
+  height: 100%; border-radius: 999px; min-width: 6px;
   background: linear-gradient(90deg, var(--bar-b, #888), var(--bar-a, #fff));
   box-shadow: 0 0 10px var(--bar-a, #fff);
   transform-origin: 0 50%;
@@ -956,17 +982,88 @@ html, body {
   grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
   width: min(96vw, 900px); margin: 0 auto 16px;
 }
+.cx-sub {
+  text-align: center; font-size: 14px; line-height: 1.5;
+  color: rgba(240,230,205,.72);
+  max-width: 46ch; margin: 0 auto 14px; padding: 0 14px;
+}
+.cx-hist {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  align-items: center; margin: 0 auto 16px; padding: 0 14px;
+}
+.cx-hist-l {
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: rgba(235,225,200,.5);
+}
+.cx-hist-i {
+  font-size: 12px; padding: 3px 9px; border-radius: 999px;
+  color: #F2E6CC;
+  border: 1px solid color-mix(in srgb, var(--lane-glow) 55%, transparent);
+  background: color-mix(in srgb, var(--lane-glow) 12%, transparent);
+}
+
 .codex-cell {
+  position: relative;
   border-radius: 14px; padding: 12px 8px; text-align: center; cursor: pointer;
   transition: transform .16s ease, filter .16s ease;
 }
 .codex-cell:hover { transform: translateY(-2px); filter: brightness(1.15); }
+.codex-cell.open {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lane-glow) 70%, transparent),
+              0 0 22px color-mix(in srgb, var(--lane-glow) 32%, transparent);
+}
 .codex-cell .cs { position: relative; width: 52px; height: 52px; margin: 0 auto 7px; }
 .codex-cell .cs svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .codex-cell .cn { font-family: var(--display); font-size: 15px; color: #F2E6CC; }
 .codex-cell .cd { font-size: 11.5px; color: rgba(235,225,200,.6); margin-top: 2px; line-height: 1.3; }
-.codex-cell.locked { filter: grayscale(1) brightness(.42); }
-.codex-cell.locked .cn { color: rgba(230,220,200,.42); letter-spacing: .3em; }
+
+/* your own parent — lit, never a badge of rarity */
+.codex-cell.parent {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lane-glow) 85%, transparent),
+              0 0 30px color-mix(in srgb, var(--lane-glow) 42%, transparent);
+}
+.c-tag {
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  font-size: 9.5px; letter-spacing: .13em; text-transform: uppercase;
+  white-space: nowrap;
+  padding: 3px 9px; border-radius: 999px;
+  color: #17120A; background: linear-gradient(180deg, var(--gold-lit), var(--gold));
+  box-shadow: 0 1px 6px rgba(0,0,0,.5);
+}
+.c-tag-past {
+  color: rgba(240,230,205,.82);
+  background: rgba(40,34,26,.94);
+  border: 1px solid rgba(227,178,60,.5);
+}
+.c-rank {
+  position: absolute; top: 7px; left: 9px;
+  font-size: 10.5px; font-variant-numeric: tabular-nums;
+  color: rgba(235,225,200,.42);
+}
+
+/* resonance, per god, on the cell itself */
+.c-aff { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+.c-aff-track {
+  flex: 1; height: 6px; border-radius: 999px; overflow: hidden;
+  background: rgba(255,240,210,.13);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.5);
+}
+.c-aff-fill {
+  /* even a 1% resonance gets a visible sliver — an empty track reads as
+     "no data", not as "a little" */
+  display: block; height: 100%; border-radius: 999px; min-width: 5px;
+  background: linear-gradient(90deg, var(--bar-b, #888), var(--bar-a, #fff));
+  transform-origin: 0 50%;
+  animation: barGrow .8s .15s cubic-bezier(.16,1,.3,1) both;
+}
+.c-aff-n {
+  font-size: 11px; font-variant-numeric: tabular-nums;
+  color: rgba(235,225,200,.72); min-width: 30px; text-align: right;
+}
+.cx-you {
+  margin-top: 7px; font-size: 13.5px; line-height: 1.5;
+  color: var(--gold-lit);
+}
 
 /* ---- 14. accessibility: reduced motion -------------------------------- */
 /* Kills parallax, particles, shake and ALL flashes including the lightning
@@ -995,7 +1092,7 @@ html, body {
 .reduced #prompt { opacity: 1 !important; transform: none !important; }
 .reduced #claimSymbol { opacity: 1 !important; transform: translate(-50%,-50%) scale(1) !important; }
 .reduced #claimName .ch { opacity: 1 !important; transform: none !important; }
-.reduced .bar-fill { transform: scaleX(1) !important; }
+.reduced .bar-fill, .reduced .c-aff-fill { transform: scaleX(1) !important; }
 .reduced .satchel-item { opacity: 1 !important; transform: none !important; }
 .reduced #card { opacity: 1 !important; transform: none !important; }
 .reduced .card-hero .halo { opacity: .5 !important; }
@@ -3261,6 +3358,24 @@ const Input = (function () {
   let locked = false;          // debounce — set on commit, cleared by arm()
   let buffering = false;       // the cards are still blooming
   let pending = null;          // an answer given during the bloom, held over
+  let modal = false;           // a dialog owns the screen; the road hears nothing
+
+  /* ---- staying out of the way of real controls --------------------------
+     Input is attached to #stage, which contains the HUD buttons and the
+     tutorial dialog as well as the road. Left unchecked it steals from them
+     twice over: pointerdown takes pointer capture, which retargets the
+     follow-up click away from the button and onto #stage, and keydown calls
+     preventDefault on Enter and Space, which cancels the button's own
+     activation. Between them that made the tutorial's "Got it" impossible to
+     press by mouse, by touch or by keyboard, with no way out of the dialog.
+
+     So: anything that is a genuine control, and is not one of the five lane
+     cards, is none of this module's business. Hands off entirely. */
+  function isControl(el) {
+    if (!el || !el.closest) return false;
+    if (el.closest('.lane')) return false;          // lane cards ARE the game
+    return !!el.closest('button, a[href], input, select, textarea, summary, [role="button"]');
+  }
   let dragging = false;
   let startX = 0, startY = 0, startT = 0;
   let lastX = 0, lastY = 0, lastT = 0;
@@ -3288,7 +3403,7 @@ const Input = (function () {
   }
 
   function commit(dir, how) {
-    if (!dir) return;
+    if (!dir || modal) return;
     // A player who answers while the cards are still blooming used to get
     // nothing at all — the press was swallowed and they had to press again.
     // Hold it instead and play it the moment the junction opens.
@@ -3310,6 +3425,8 @@ const Input = (function () {
   /* ---- pointer ---------------------------------------------------------- */
 
   function onDown(e) {
+    if (modal || isControl(e.target)) return;
+    if (opts.onIdlePress && !active && !buffering) opts.onIdlePress();
     if ((!active && !buffering) || locked) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     dragging = true;
@@ -3373,15 +3490,28 @@ const Input = (function () {
   };
 
   function onKey(e) {
-    if ((!active && !buffering) || locked) return;
+    if (modal) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'Tab') return;                   // never fight tab order
+    const focusedControl = isControl(document.activeElement);
+    const isActivate = e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar';
+
+    // Enter or Space while a real button has focus belongs to that button.
+    // Swallowing it here is what used to make the tutorial inescapable.
+    if (isActivate && focusedControl) return;
+
+    if (opts.onIdlePress && !active && !buffering && (KEYS[e.key] || isActivate)) {
+      opts.onIdlePress();
+    }
+    if ((!active && !buffering) || locked) return;
+
     const mapped = KEYS[e.key];
     if (mapped) {
       e.preventDefault();
       commit(mapped, 'key');
       return;
     }
-    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+    if (isActivate) {
       e.preventDefault();
       // if the player has tabbed onto a specific lane, Enter picks that lane;
       // otherwise Enter means "walk straight ahead" — the centre
@@ -3404,6 +3534,7 @@ const Input = (function () {
       window.addEventListener('keydown', onKey);
       // clicking a lane card directly always works, swipe or no swipe
       host.addEventListener('click', (e) => {
+        if (modal) return;
         const lane = e.target.closest && e.target.closest('.lane');
         if (lane && (active || buffering) && !locked) commit(lane.dataset.dir, 'click');
       });
@@ -3431,6 +3562,15 @@ const Input = (function () {
 
     /* Close it — used during the resolve animation and between junctions. */
     disarm() { active = false; buffering = false; pending = null; clearDrag(); },
+
+    /* A dialog is on screen and owns every gesture and key until it closes.
+       Nothing is buffered while it is up — an answer must never be a
+       side-effect of dismissing a message. */
+    setModal(on) {
+      modal = !!on;
+      if (modal) { pending = null; clearDrag(); }
+    },
+    isModal() { return modal; },
 
     isArmed() { return (active || buffering) && !locked; },
 
@@ -6661,14 +6801,16 @@ const Select = (function () {
     if (G.reduced) { el.innerHTML = '&ldquo;' + text + '&rdquo;'; return; }
     let i = 0;
     el.innerHTML = '<span class="caret"></span>';
+    // brisk: a player sweeping across all five heroes restarts this each
+    // time, and at the old speed the line never finished before it changed
     typeTimer = setInterval(() => {
-      i++;
+      i += 2;
       el.innerHTML = '&ldquo;' + text.slice(0, i) + '&rdquo;<span class="caret"></span>';
       if (i >= text.length) {
         clearInterval(typeTimer);
-        setTimeout(() => { el.innerHTML = '&ldquo;' + text + '&rdquo;'; }, 900);
+        setTimeout(() => { el.innerHTML = '&ldquo;' + text + '&rdquo;'; }, 600);
       }
-    }, 26);
+    }, 16);
   }
 
   function focus(dir) {
@@ -6880,7 +7022,7 @@ const Junction = (function () {
     // the hero turns into the choice before the camera whips round
     Rig.setState(Rig.poseForDirection(dir));
 
-    const wait = G.reduced ? 160 : 560;
+    const wait = G.reduced ? 140 : 380;
     setTimeout(() => {
       D.junction.classList.remove('on');
       D.vignette.classList.remove('tight');
@@ -6891,17 +7033,37 @@ const Junction = (function () {
 
   /* ---- the tutorial, once, on the very first junction ------------------ */
 
+  /* While this is up it owns the screen: the road hears nothing, so no
+     answer can be given by accident while dismissing it. And there are four
+     ways out — the button, anywhere on the backdrop, Escape, or any key at
+     all. A child must never be able to get stuck behind a message. */
   function showTutorial(then) {
+    let done = false;
+    Input.setModal(true);
     D.tutorial.classList.add('on');
+    D.live.textContent =
+      'Five ways to go. Swipe or use the arrow keys. Press any key or tap to continue.';
+
     const dismiss = () => {
+      if (done) return;
+      done = true;
       D.tutorial.classList.remove('on');
       G.tutorialSeen = true;
-      saveStore();
-      D.tutBtn.removeEventListener('click', dismiss);
+      try { saveStore(); } catch (e) {}       // storage must never trap anyone
+      D.tutorial.removeEventListener('click', dismiss);
+      window.removeEventListener('keydown', onKey, true);
+      Input.setModal(false);
       then();
     };
-    D.tutBtn.addEventListener('click', dismiss);
-    D.tutBtn.focus();
+    const onKey = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.key === 'Tab') return;
+      e.preventDefault();
+      dismiss();
+    };
+
+    D.tutorial.addEventListener('click', dismiss);
+    window.addEventListener('keydown', onKey, true);
+    D.tutBtn.focus({ preventScroll: true });
   }
 
   /* ---------------------------------------------------------------------- */
@@ -6917,9 +7079,13 @@ const Junction = (function () {
       onDone = done;
       build(q);
 
+      const tutorialFirst = !G.tutorialSeen && G.questionIndex === 0;
+
       D.junction.classList.add('on');
       D.vignette.classList.add('tight');
-      Input.preArm();          // hold any answer given during the bloom
+      // hold any answer given during the bloom — but not when the tutorial is
+      // about to open, or dismissing it would count as an answer
+      if (!tutorialFirst) Input.preArm();
       D.hud.classList.remove('dim');
 
       // announce it for screen readers and for anyone with the sound off
@@ -6939,12 +7105,11 @@ const Junction = (function () {
 
       Audio2.junction();
 
-      const arm = () => Input.arm();
-      const bloomTime = G.reduced ? 60 : 640;
-      if (!G.tutorialSeen && G.questionIndex === 0) {
-        setTimeout(() => showTutorial(arm), bloomTime);
+      const bloomTime = G.reduced ? 60 : 430;
+      if (tutorialFirst) {
+        setTimeout(() => showTutorial(() => { Input.preArm(); Input.arm(); }), bloomTime);
       } else {
-        setTimeout(arm, bloomTime);
+        setTimeout(() => Input.arm(), bloomTime);
       }
     },
 
@@ -6964,7 +7129,7 @@ const Junction = (function () {
    The hero stands in the amphitheatre at dusk, the whole camp gathered in
    silhouette, and then:
 
-     1. three seconds of held silence — fire crackles, everyone looks up.
+     1. held silence — fire crackles, everyone looks up.
         RESIST THE URGE TO FILL THIS. The silence is the effect.
      2. light drains to near-black, desaturating from the edges inward
      3. the god-symbol ignites above their head, rotating, casting light down
@@ -7045,20 +7210,26 @@ const Claiming = (function () {
     D.claiming.classList.add('on');
 
     D.live.textContent = 'The claiming.';
+    D.claimSkip.classList.remove('on');
 
-    // 1. three seconds of held silence
+    // The one long moment left in the game, and the only one worth keeping.
+    // It is still skippable — but by a button that has to be found and
+    // pressed, never by the tap that a waiting child makes by reflex.
+    after(2200, () => D.claimSkip.classList.add('on'));
+
+    // 1. the held silence
     // 2. light drains to near-black
-    after(1600, () => D.claimDrain.classList.add('on'));
+    after(1200, () => D.claimDrain.classList.add('on'));
 
     // 3. the symbol ignites and casts its light down
-    after(3000, () => {
+    after(2300, () => {
       D.claimSymbol.classList.add('ignite');
       D.claimBeam.classList.add('on');
       Audio2.divine();
     });
 
     // 4. the shockwave, and the crowd kneeling in a wave from the front row back
-    after(4300, () => {
+    after(3300, () => {
       D.claimRing.classList.add('burst');
       Particles.shockwave(window.innerWidth / 2, window.innerHeight * 0.23, c[2]);
       Audio2.thunder();
@@ -7074,7 +7245,7 @@ const Claiming = (function () {
     });
 
     // 5. the name types out in gold, one bass impact per letter
-    after(5100, () => {
+    after(4100, () => {
       const name = god.name.toUpperCase();
       D.claimName.innerHTML = name.split('').map((ch) =>
         '<span class="ch">' + (ch === ' ' ? '&nbsp;' : ch) + '</span>').join('');
@@ -7086,7 +7257,7 @@ const Claiming = (function () {
     });
 
     // 6. the chorus speaks the claiming line
-    after(6400, () => {
+    after(5200, () => {
       const epithet = god.epithets[(res.traits.VALOR + res.traits.SHADOW) % god.epithets.length];
       D.claimLine.textContent = 'Hail, child of ' + god.name + ', ' + epithet + '.';
       D.claimLine.classList.add('on');
@@ -7095,13 +7266,18 @@ const Claiming = (function () {
     });
 
     // 7. the result card slides up
-    after(9200, () => setState(S.RESULT));
+    after(7600, () => setState(S.RESULT));
   }
 
   return {
     init() {
       onEnter(S.CLAIMING, run);
-      onExit(S.CLAIMING, () => { clearAll(); D.claiming.classList.remove('on'); });
+      onExit(S.CLAIMING, () => {
+        clearAll();
+        D.claiming.classList.remove('on');
+        D.claimSkip.classList.remove('on');
+      });
+      D.claimSkip.addEventListener('click', () => Claiming.skip());
     },
     skip() { clearAll(); setState(S.RESULT); },
   };
@@ -7492,46 +7668,104 @@ const Result = (function () {
    src/screens/codex.js
    ======================================================================== */
 /* ===========================================================================
-   codex.js — the gallery of all fourteen gods (Tier 2)
+   codex.js — The Fourteen
    ---------------------------------------------------------------------------
-   Undiscovered gods are silhouettes with a locked symbol. Discovered ones
-   reveal their art, domains, cabin, sacred animal and symbol.
+   This used to be a collection: gods you had not been claimed by were locked
+   silhouettes reading "? ? ?", and the page counted "3 of 14 found".
 
-   This is the replay engine — "13 of 14 found" is what makes a kid go again.
+   That was the wrong idea for this game. You do not FIND a godly parent, and
+   you certainly do not unlock Athena by happening to be her child — she was
+   always there. A collection also quietly says the gods you have not drawn
+   are worth less, which breaks the rule that no result is a consolation
+   prize. Worse, it gave a child a reason to replay the quiz until the meter
+   filled, which turns an honest answer into a grind.
+
+   So the Codex is now the cast list of the world, and it is open from the
+   first second. Its job changes depending on when you open it:
+
+     BEFORE you play  — it is the field guide. Fourteen people it is possible
+                        to be related to. Read them, and start wondering.
+     AFTER you play   — it is the map of YOU. Every god carries how strongly
+                        you resonated with them, strongest first, your parent
+                        at the top and named as such. The gods at the bottom
+                        are as interesting as the ones at the top: they are
+                        the parts of yourself you did not choose today.
+
+   Nothing here is ever hidden, greyed out or locked.
    =========================================================================== */
 
 const Codex = (function () {
 
   let backTo = S.TITLE;
+  let openKey = null;
 
-  function cell(key) {
+  /* Affinity is the run's normalised score, restated against the winner so
+     the parent reads 100% and everyone else reads as a share of them. Raw
+     normalised scores cluster in a narrow band and look meaningless. */
+  function affinities() {
+    if (!G.result) return null;
+    const s = G.result.scores;
+    const top = s[G.result.winner] || 1;
+    const map = {};
+    GOD_KEYS.forEach((k) => {
+      map[k] = Math.max(1, Math.round((s[k] / top) * 100));
+    });
+    return map;
+  }
+
+  function orderedKeys(aff) {
+    const keys = GOD_KEYS.slice();
+    if (aff) return keys.sort((a, b) => aff[b] - aff[a]);
+    return keys.sort((a, b) => GODS[a].cabinNumber - GODS[b].cabinNumber);
+  }
+
+  function cell(key, aff, rank) {
     const god = GODS[key];
-    const found = !!G.discovered[key];
     const c = god.colours;
-    return '<div class="codex-cell plate' + (found ? '' : ' locked') + '" tabindex="0" ' +
-      'role="button" aria-label="' + (found ? god.name + ', ' + god.domains : 'Undiscovered god') + '" ' +
-      'data-key="' + key + '" style="--lane-glow:' + c[0] + '">' +
-      '<div class="cs">' + (found ? (Sigil[god.symbol] || Sigil.lightning)(c[0]) : lockedSigil()) + '</div>' +
-      '<div class="cn">' + (found ? god.name : '? ? ?') + '</div>' +
-      '<div class="cd">' + (found ? 'Cabin ' + god.cabinNumber + ' · ' + god.animalName : 'Not yet claimed') +
-      '</div></div>';
+    const isParent = !!(G.result && G.result.winner === key);
+    const claimedBefore = !!G.discovered[key];
+
+    let meta;
+    if (aff) {
+      meta = '<div class="c-aff"><span class="c-aff-track"><span class="c-aff-fill" ' +
+        'style="width:' + aff[key] + '%;--bar-a:' + c[0] + ';--bar-b:' + c[1] + '"></span></span>' +
+        '<span class="c-aff-n">' + aff[key] + '%</span></div>';
+    } else {
+      meta = '<div class="cd">Cabin ' + god.cabinNumber + ' · ' + god.animalName + '</div>';
+    }
+
+    const label = god.name + '. ' + god.domains +
+      (aff ? '. Resonance ' + aff[key] + ' percent' : '') +
+      (isParent ? '. Your godly parent.' : '');
+
+    return '<div class="codex-cell plate' + (isParent ? ' parent' : '') +
+        (openKey === key ? ' open' : '') + '" tabindex="0" role="button" ' +
+        'aria-label="' + label + '" data-key="' + key + '" style="--lane-glow:' + c[0] + '">' +
+      (isParent ? '<span class="c-tag">Your parent</span>' :
+        (claimedBefore ? '<span class="c-tag c-tag-past" title="Has claimed you before">Before</span>' : '')) +
+      (aff ? '<span class="c-rank">' + rank + '</span>' : '') +
+      '<div class="cs">' + (Sigil[god.symbol] || Sigil.lightning)(c[0]) + '</div>' +
+      '<div class="cn">' + god.name + '</div>' +
+      meta +
+      '</div>';
   }
 
-  function lockedSigil() {
-    return svgBox('<circle cx="50" cy="50" r="40" fill="none" stroke="#6A6258" stroke-width="3" ' +
-      'stroke-dasharray="4 7"/>' +
-      '<rect x="34" y="46" width="32" height="26" rx="5" fill="#5A5248"/>' +
-      '<path d="M40 46 v-8 q0 -10 10 -10 t10 10 v8" stroke="#5A5248" stroke-width="4" fill="none"/>');
-  }
-
+  /* The detail panel opens for any of the fourteen, always. */
   function detail(key) {
     const god = GODS[key];
-    if (!G.discovered[key]) return;
     const c = god.colours;
+    const aff = affinities();
+    openKey = key;
+
     D.codexDetail.style.setProperty('--g-a', c[0]);
     D.codexDetail.innerHTML =
       '<div class="card-sec"><h4>' + god.name + '</h4>' +
       '<p style="color:' + c[0] + '">' + god.domains + '</p>' +
+      (aff ? '<p class="cx-you">' +
+        (G.result.winner === key
+          ? 'This is your parent. You matched them more closely than any of the other thirteen.'
+          : 'You resonated ' + aff[key] + '% as strongly with ' + god.name + ' as with your own parent.') +
+        '</p>' : '') +
       '<p style="margin-top:6px"><strong>Cabin ' + god.cabinNumber + '.</strong> ' +
         god.cabinDescription + '</p>' +
       '<div class="chips" style="margin-top:8px">' +
@@ -7539,22 +7773,52 @@ const Codex = (function () {
         '<span class="chip"><span class="swatch" style="background:' + c[0] + '"></span>' +
           god.colourName + '</span>' +
         '<span class="chip">' + (Sigil[god.symbol] || Sigil.lightning)(c[0]) + god.symbolName + '</span>' +
+      '</div>' +
+      '<div class="chips" style="margin-top:7px">' +
+        '<span class="chip" style="border-color:' + GODS[god.ally].colours[0] + '99">' +
+          'Closest ally · ' + GODS[god.ally].name + '</span>' +
+        '<span class="chip" style="border-color:' + GODS[god.rival].colours[0] + '99">' +
+          'Greatest rival · ' + GODS[god.rival].name + '</span>' +
       '</div></div>';
     D.codexDetail.classList.add('plate');
-    D.codexDetail.style.padding = '12px 14px';
     D.live.textContent = god.name + '. ' + god.domains;
+
+    D.codex.querySelectorAll('.codex-cell').forEach((el) => {
+      el.classList.toggle('open', el.dataset.key === key);
+    });
+  }
+
+  /* "You have walked this road before, and here is how it went." Past runs
+     are a story, not a scoreboard — so they are listed, never counted. */
+  function historyStrip() {
+    if (!G.history || !G.history.length) return '';
+    const seen = G.history.slice(0, 6).map((h) =>
+      '<span class="cx-hist-i" style="--lane-glow:' + GODS[h.god].colours[0] + '">' +
+        GODS[h.god].name + '</span>').join('');
+    return '<div class="cx-hist"><span class="cx-hist-l">Roads walked</span>' + seen + '</div>';
   }
 
   function render() {
-    const found = GOD_KEYS.filter((k) => G.discovered[k]).length;
+    const aff = affinities();
+    const keys = orderedKeys(aff);
+
+    const intro = aff
+      ? '<p class="cx-sub">Ordered by how strongly this run resonated with each of them. ' +
+        'The ones at the bottom are not failures — they are the roads you did not take today.</p>'
+      : '<p class="cx-sub">Fourteen gods claim children. Any one of them could be yours. ' +
+        'Read them now, or walk the road and find out.</p>';
+
     D.codex.innerHTML =
       '<div style="max-width:960px;margin:0 auto">' +
-        '<h2 class="display">The Codex</h2>' +
-        '<p id="codexCount" class="gilt">' + found + ' of 14 found</p>' +
-        '<div id="codexGrid">' + GOD_KEYS.map(cell).join('') + '</div>' +
+        '<h2 class="display">The Fourteen</h2>' +
+        (aff ? '<p id="codexCount" class="gilt">Claimed by ' + GODS[G.result.winner].name + '</p>' : '') +
+        intro +
+        historyStrip() +
+        '<div id="codexGrid">' + keys.map((k, i) => cell(k, aff, i + 1)).join('') + '</div>' +
         '<div id="codexDetail" style="max-width:520px;margin:0 auto 16px"></div>' +
         '<div class="btn-row"><button class="btn" id="btnCodexBack">Back</button></div>' +
       '</div>';
+
     D.codexDetail = D.codex.querySelector('#codexDetail');
     D.codex.querySelectorAll('.codex-cell').forEach((el) => {
       const go = () => detail(el.dataset.key);
@@ -7564,13 +7828,15 @@ const Codex = (function () {
       });
     });
     D.codex.querySelector('#btnCodexBack').addEventListener('click', () => setState(backTo));
-    // open on whatever they were just claimed by
-    if (G.result && G.discovered[G.result.winner]) detail(G.result.winner);
+
+    // open on your own parent when there is one, otherwise on nobody
+    if (G.result) detail(G.result.winner);
+    else if (openKey) detail(openKey);
   }
 
   return {
     init() {
-      onEnter(S.CODEX, () => { render(); D.codex.classList.add('on'); D.codex.scrollTop = 0; });
+      onEnter(S.CODEX, () => { openKey = null; render(); D.codex.classList.add('on'); D.codex.scrollTop = 0; });
       onExit(S.CODEX, () => D.codex.classList.remove('on'));
     },
     open(from) { backTo = from || S.TITLE; setState(S.CODEX); },
@@ -7655,6 +7921,7 @@ function buildDOM() {
         '<div id="claimRing"></div>' +
         '<div id="claimName"></div>' +
         '<div id="claimLine"></div>' +
+        '<button type="button" id="claimSkip">Skip</button>' +
       '</div>' +
 
       '<div class="screen" id="resultScreen">' +
@@ -7707,6 +7974,7 @@ function buildDOM() {
   D.claimDrain = document.getElementById('claimDrain');
   D.claimName = document.getElementById('claimName');
   D.claimLine = document.getElementById('claimLine');
+  D.claimSkip = document.getElementById('claimSkip');
   D.result = document.getElementById('resultScreen');
   D.card = document.getElementById('card');
   D.resultBtns = document.getElementById('resultBtns');
@@ -7794,11 +8062,21 @@ function hexA(hex, a) {
 let items = [];      // { z, lane, id, el, taken }
 let npcs = [];       // { z, side, id, el }
 
+/* How far down the road a realm actually travels, in z, across its three run
+   segments. Derived rather than hard-coded, so that shortening the segments
+   re-spaces the world automatically instead of quietly stranding every
+   collectible beyond the end of the walk. */
+function realmZBudget(realm) {
+  const perSegment = 1.35;                 // the average of beginRunSegment
+  return (realm.runSpeed / 900) * perSegment * 3;
+}
+
 function spawnItems(realm) {
   D.items.innerHTML = '';
   items = [];
   const pool = realm.collectibles;
   const n = 4 + Math.floor(Math.random() * 3);         // 4-6 per realm
+  const budget = realmZBudget(realm);
   for (let i = 0; i < n; i++) {
     // some items sit in one lane only, so replaying to collect a different
     // set is rewarded
@@ -7810,20 +8088,28 @@ function spawnItems(realm) {
       '<div class="a-spinSlow" style="width:100%;height:100%">' + collectibleArt(id) + '</div></div>';
     el.firstChild.style.filter = 'drop-shadow(0 0 10px rgba(255,220,140,.8))';
     D.items.appendChild(el);
-    items.push({ z: 1 + i * 0.55 + Math.random() * 0.3, lane: (Math.random() * 2 - 1) * 0.8, id, el, taken: false });
+    // spread evenly over the road that will actually be walked, with the last
+    // one comfortably inside it
+    const z = 0.16 + ((i + 0.5) / n) * (budget * 0.88 - 0.16);
+    items.push({ z, z0: z, lane: (Math.random() * 2 - 1) * 0.8, id, el, taken: false });
   }
 }
 
 function spawnNPCs(realm) {
   D.npcs.innerHTML = '';
   npcs = [];
+  const budget = realmZBudget(realm);
   realm.npcs.forEach((id, i) => {
     const el = document.createElement('div');
     el.style.cssText = 'position:absolute;will-change:transform;pointer-events:none;' +
       'width:260px;height:260px;left:0;top:0';
     el.innerHTML = beastArt(id);
     D.npcs.appendChild(el);
-    npcs.push({ z: 0.75 + i * 0.85, side: i % 2 ? 1 : -1, id, el, reacted: false });
+    npcs.push({
+      z: 0.3 + ((i + 0.5) / realm.npcs.length) * budget,
+      zRecycle: budget,
+      side: i % 2 ? 1 : -1, id, el, reacted: false,
+    });
   });
 }
 
@@ -7854,19 +8140,26 @@ function stepItems(dt, speed) {
       Audio2.collect();
       continue;
     }
-    if (it.z > 1.05) { it.el.style.opacity = 0; continue; }
+    // fade in relative to where this one started, not a fixed distance, so
+    // items stay visible whatever the realm's travel budget works out to
+    const fade = Math.min(1, Math.max(0, (it.z0 - it.z) / (it.z0 * 0.22 + 0.08)));
+    if (fade <= 0) { it.el.style.opacity = 0; continue; }
     const p = project(it.z, it.lane);
-    it.el.style.opacity = Math.min(1, (1.05 - it.z) * 6);
+    it.el.style.opacity = fade;
     it.el.style.transform = 'translate3d(' + (p.x - 32) + 'px,' + (p.y - 60 * p.s) + 'px,0) scale(' +
       p.s.toFixed(3) + ')';
   }
 }
 
 function stepNPCs(dt, speed) {
-  const dz = (speed / 1400) * dt;                 // NPCs drift by more slowly
+  const dz = (speed / 1150) * dt;                 // NPCs drift by a little more slowly
   for (const n of npcs) {
     n.z -= dz;
-    if (n.z < -0.25) { n.z = 1.5 + Math.random() * 0.9; n.side = Math.random() < 0.5 ? -1 : 1; n.reacted = false; }
+    if (n.z < -0.25) {
+      n.z = n.zRecycle * (0.75 + Math.random() * 0.35);
+      n.side = Math.random() < 0.5 ? -1 : 1;
+      n.reacted = false;
+    }
     const p = project(Math.max(0, n.z), n.side * (1.55 + n.z * 0.45));
     n.el.style.opacity = Math.min(0.95, Math.max(0, (1.15 - n.z) * 2.2));
     // cap the scale: unclamped, a creature that walks right past the camera
@@ -7911,13 +8204,39 @@ function stepPlane(dt, speed) {
 
 /* ---- 5. realm intro, exit transitions ---------------------------------- */
 
+/* Every wait in this game can be cut short by the player. Nothing holds the
+   screen for longer than they want it to. */
+let skipIntro = null;
+
 function showRealmIntro(then) {
   const realm = currentRealm();
   D.realmIntro.querySelector('.ri-name').textContent = realm.name;
   D.realmIntro.querySelector('.ri-sub').textContent = realm.subtitle;
   D.realmIntro.classList.add('on');
   D.live.textContent = realm.name + '. ' + realm.subtitle;
-  setTimeout(() => { D.realmIntro.classList.remove('on'); then(); }, G.reduced ? 900 : 2500);
+
+  let fired = false;
+  const finish = () => {
+    if (fired) return;
+    fired = true;
+    skipIntro = null;
+    clearTimeout(timer);
+    D.realmIntro.classList.remove('on');
+    then();
+  };
+  const timer = setTimeout(finish, G.reduced ? 700 : 1300);
+  skipIntro = finish;
+}
+
+/* Cut the current run segment short — the player has seen enough and wants
+   the next choice now. It does not snap: a beat is left on the clock so the
+   slow-down into the junction still plays rather than the world stopping
+   dead. */
+function hurryToJunction() {
+  if (G.state !== S.RUNNING) return;
+  const leave = 0.3;
+  if (G.segmentLength - G.runTime <= leave) return;
+  G.runTime = G.segmentLength - leave;
 }
 
 /* Each exit is a distinct full-screen flourish, never a fade. */
@@ -7927,35 +8246,35 @@ const Transitions = {
       '<div class="tr-trunk tr-left"></div><div class="tr-trunk tr-right"></div>';
     D.transition.className = 'fxlayer tr-on';
     Audio2.whoosh();
-    setTimeout(done, 760);
+    setTimeout(done, 520);
   },
   waveCrash(done) {
     D.transition.innerHTML = '<div class="tr-wave"></div><div class="tr-foam"></div>';
     D.transition.className = 'fxlayer tr-on';
     Audio2.whoosh();
-    setTimeout(done, 900);
+    setTimeout(done, 600);
   },
   whirlpool(done) {
     D.transition.innerHTML = '<div class="tr-spiral"></div><div class="tr-lantern"></div>';
     D.transition.className = 'fxlayer tr-on';
     Audio2.whoosh();
-    setTimeout(done, 1050);
+    setTimeout(done, 700);
   },
   lightningWhite(done) {
     // suppressed entirely under reduced motion — this is the flash rule
-    if (G.reduced) { setTimeout(done, 260); return; }
+    if (G.reduced) { setTimeout(done, 200); return; }
     Audio2.thunder();
     D.flash.classList.add('on');
     setTimeout(() => D.flash.classList.remove('on'), 200);
-    setTimeout(done, 620);
+    setTimeout(done, 460);
   },
   skyDescent(done) {
     D.transition.innerHTML = '<div class="tr-cloud"></div>';
     D.transition.className = 'fxlayer tr-on';
     D.stage.classList.add('tr-spin');
     Audio2.whoosh();
-    setTimeout(() => D.stage.classList.remove('tr-spin'), 1200);
-    setTimeout(done, 1250);
+    setTimeout(() => D.stage.classList.remove('tr-spin'), 800);
+    setTimeout(done, 820);
   },
 };
 
@@ -7963,7 +8282,7 @@ function runTransition(name, done) {
   const fn = Transitions[name] || Transitions.trunkDive;
   if (G.reduced && name !== 'lightningWhite') {
     D.transition.className = 'fxlayer';
-    setTimeout(done, 240);
+    setTimeout(done, 180);
     return;
   }
   fn(() => { D.transition.className = 'fxlayer'; D.transition.innerHTML = ''; done(); });
@@ -7980,7 +8299,11 @@ function updateDots() {
 
 function beginRunSegment() {
   G.runTime = 0;
-  G.segmentLength = 4 + Math.random() * 3;          // 4-7 seconds
+  /* Short on purpose. This used to be 4-7 seconds and it was far too long:
+     the game is the choosing, not the walking. What is left is just enough
+     travel to carry you out of the last junction, show the realm moving and
+     sweep in the next one — and it can still be cut short with a tap. */
+  G.segmentLength = 1.1 + Math.random() * 0.5;
   G.targetSpeed = currentRealm().runSpeed;
   G.timeScale = 1;
   Rig.setState('run');
@@ -8083,7 +8406,7 @@ function frame(now) {
     G.runTime += dt;
     // slow to about 35% as the junction comes up — this moment is the feel
     const left = G.segmentLength - G.runTime;
-    if (left < 0.7) G.timeScale = Math.max(0.35, 0.35 + (left / 0.7) * 0.65);
+    if (left < 0.4) G.timeScale = Math.max(0.35, 0.35 + (left / 0.4) * 0.65);
     if (G.runTime >= G.segmentLength) { G.timeScale = 1; openJunction(); }
   }
 
@@ -8150,6 +8473,14 @@ function boot() {
     onDrag(dir, strength, dx, dy) {
       if (G.state === S.CHARACTER_SELECT) Select.handleDrag(dir, strength, dx, dy);
       else if (G.state === S.JUNCTION) Junction.handleDrag(dir, strength, dx, dy);
+    },
+    /* A press when there is nothing to answer means "get on with it". No
+       moment in this game holds the screen against the player's wishes. */
+    onIdlePress() {
+      if (G.state === S.RUNNING) hurryToJunction();
+      else if (G.state === S.REALM_INTRO && skipIntro) skipIntro();
+      // the claiming is deliberately NOT here: it is the payoff, and a stray
+      // thumb must not be able to throw it away. It gets its own skip button.
     },
   });
 

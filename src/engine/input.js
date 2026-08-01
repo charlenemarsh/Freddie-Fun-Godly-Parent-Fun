@@ -34,6 +34,24 @@ const Input = (function () {
   let locked = false;          // debounce — set on commit, cleared by arm()
   let buffering = false;       // the cards are still blooming
   let pending = null;          // an answer given during the bloom, held over
+  let modal = false;           // a dialog owns the screen; the road hears nothing
+
+  /* ---- staying out of the way of real controls --------------------------
+     Input is attached to #stage, which contains the HUD buttons and the
+     tutorial dialog as well as the road. Left unchecked it steals from them
+     twice over: pointerdown takes pointer capture, which retargets the
+     follow-up click away from the button and onto #stage, and keydown calls
+     preventDefault on Enter and Space, which cancels the button's own
+     activation. Between them that made the tutorial's "Got it" impossible to
+     press by mouse, by touch or by keyboard, with no way out of the dialog.
+
+     So: anything that is a genuine control, and is not one of the five lane
+     cards, is none of this module's business. Hands off entirely. */
+  function isControl(el) {
+    if (!el || !el.closest) return false;
+    if (el.closest('.lane')) return false;          // lane cards ARE the game
+    return !!el.closest('button, a[href], input, select, textarea, summary, [role="button"]');
+  }
   let dragging = false;
   let startX = 0, startY = 0, startT = 0;
   let lastX = 0, lastY = 0, lastT = 0;
@@ -61,7 +79,7 @@ const Input = (function () {
   }
 
   function commit(dir, how) {
-    if (!dir) return;
+    if (!dir || modal) return;
     // A player who answers while the cards are still blooming used to get
     // nothing at all — the press was swallowed and they had to press again.
     // Hold it instead and play it the moment the junction opens.
@@ -83,6 +101,8 @@ const Input = (function () {
   /* ---- pointer ---------------------------------------------------------- */
 
   function onDown(e) {
+    if (modal || isControl(e.target)) return;
+    if (opts.onIdlePress && !active && !buffering) opts.onIdlePress();
     if ((!active && !buffering) || locked) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     dragging = true;
@@ -146,15 +166,28 @@ const Input = (function () {
   };
 
   function onKey(e) {
-    if ((!active && !buffering) || locked) return;
+    if (modal) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'Tab') return;                   // never fight tab order
+    const focusedControl = isControl(document.activeElement);
+    const isActivate = e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar';
+
+    // Enter or Space while a real button has focus belongs to that button.
+    // Swallowing it here is what used to make the tutorial inescapable.
+    if (isActivate && focusedControl) return;
+
+    if (opts.onIdlePress && !active && !buffering && (KEYS[e.key] || isActivate)) {
+      opts.onIdlePress();
+    }
+    if ((!active && !buffering) || locked) return;
+
     const mapped = KEYS[e.key];
     if (mapped) {
       e.preventDefault();
       commit(mapped, 'key');
       return;
     }
-    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+    if (isActivate) {
       e.preventDefault();
       // if the player has tabbed onto a specific lane, Enter picks that lane;
       // otherwise Enter means "walk straight ahead" — the centre
@@ -177,6 +210,7 @@ const Input = (function () {
       window.addEventListener('keydown', onKey);
       // clicking a lane card directly always works, swipe or no swipe
       host.addEventListener('click', (e) => {
+        if (modal) return;
         const lane = e.target.closest && e.target.closest('.lane');
         if (lane && (active || buffering) && !locked) commit(lane.dataset.dir, 'click');
       });
@@ -204,6 +238,15 @@ const Input = (function () {
 
     /* Close it — used during the resolve animation and between junctions. */
     disarm() { active = false; buffering = false; pending = null; clearDrag(); },
+
+    /* A dialog is on screen and owns every gesture and key until it closes.
+       Nothing is buffered while it is up — an answer must never be a
+       side-effect of dismissing a message. */
+    setModal(on) {
+      modal = !!on;
+      if (modal) { pending = null; clearDrag(); }
+    },
+    isModal() { return modal; },
 
     isArmed() { return (active || buffering) && !locked; },
 

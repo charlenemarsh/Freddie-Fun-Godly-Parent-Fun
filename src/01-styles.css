@@ -615,6 +615,9 @@ html, body {
 .overlay-open #heroShadow,
 .overlay-open #items,
 .overlay-open #npcs { opacity: 0; transition: opacity .4s ease; }
+/* the last junction must not still be readable through the claiming, the
+   result card or the Codex */
+.overlay-open #junction { opacity: 0; pointer-events: none; transition: opacity .3s ease; }
 
 #titleScreen .title-wrap { text-align: center; width: min(92vw, 620px); }
 #titleScreen h1 {
@@ -752,6 +755,26 @@ html, body {
 
 #claiming { position: absolute; inset: 0; z-index: 26; display: none; }
 #claiming.on { display: block; }
+
+/* Quiet on purpose. It should be findable by anyone who wants out, and
+   invisible to anyone caught up in the moment. */
+#claimSkip {
+  position: absolute; z-index: 5;
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  bottom: calc(12px + var(--safe-b));
+  min-width: 44px; min-height: 44px;
+  padding: 10px 18px; border-radius: 999px;
+  font: inherit; font-size: 14px; letter-spacing: .08em;
+  color: rgba(240,230,205,.72); cursor: pointer;
+  background: rgba(12,10,18,.55);
+  border: 1px solid rgba(227,178,60,.34);
+  opacity: 0; pointer-events: none;
+  transition: opacity .5s ease, color .2s ease, border-color .2s ease;
+}
+#claimSkip.on { opacity: 1; pointer-events: auto; }
+#claimSkip:hover, #claimSkip:focus-visible {
+  color: var(--gold-lit); border-color: rgba(227,178,60,.75);
+}
 #claimStage { position: absolute; inset: 0; overflow: hidden; }
 #claimStage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 
@@ -922,7 +945,10 @@ html, body {
   box-shadow: inset 0 1px 2px rgba(0,0,0,.5);
 }
 .bar-fill {
-  height: 100%; border-radius: 999px;
+  /* it is a <span>: without this it stays inline, width and height do not
+     apply, and the coloured fill renders at 0x0 — an empty grey track */
+  display: block;
+  height: 100%; border-radius: 999px; min-width: 6px;
   background: linear-gradient(90deg, var(--bar-b, #888), var(--bar-a, #fff));
   box-shadow: 0 0 10px var(--bar-a, #fff);
   transform-origin: 0 50%;
@@ -945,17 +971,88 @@ html, body {
   grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
   width: min(96vw, 900px); margin: 0 auto 16px;
 }
+.cx-sub {
+  text-align: center; font-size: 14px; line-height: 1.5;
+  color: rgba(240,230,205,.72);
+  max-width: 46ch; margin: 0 auto 14px; padding: 0 14px;
+}
+.cx-hist {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  align-items: center; margin: 0 auto 16px; padding: 0 14px;
+}
+.cx-hist-l {
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: rgba(235,225,200,.5);
+}
+.cx-hist-i {
+  font-size: 12px; padding: 3px 9px; border-radius: 999px;
+  color: #F2E6CC;
+  border: 1px solid color-mix(in srgb, var(--lane-glow) 55%, transparent);
+  background: color-mix(in srgb, var(--lane-glow) 12%, transparent);
+}
+
 .codex-cell {
+  position: relative;
   border-radius: 14px; padding: 12px 8px; text-align: center; cursor: pointer;
   transition: transform .16s ease, filter .16s ease;
 }
 .codex-cell:hover { transform: translateY(-2px); filter: brightness(1.15); }
+.codex-cell.open {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lane-glow) 70%, transparent),
+              0 0 22px color-mix(in srgb, var(--lane-glow) 32%, transparent);
+}
 .codex-cell .cs { position: relative; width: 52px; height: 52px; margin: 0 auto 7px; }
 .codex-cell .cs svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .codex-cell .cn { font-family: var(--display); font-size: 15px; color: #F2E6CC; }
 .codex-cell .cd { font-size: 11.5px; color: rgba(235,225,200,.6); margin-top: 2px; line-height: 1.3; }
-.codex-cell.locked { filter: grayscale(1) brightness(.42); }
-.codex-cell.locked .cn { color: rgba(230,220,200,.42); letter-spacing: .3em; }
+
+/* your own parent — lit, never a badge of rarity */
+.codex-cell.parent {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--lane-glow) 85%, transparent),
+              0 0 30px color-mix(in srgb, var(--lane-glow) 42%, transparent);
+}
+.c-tag {
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  font-size: 9.5px; letter-spacing: .13em; text-transform: uppercase;
+  white-space: nowrap;
+  padding: 3px 9px; border-radius: 999px;
+  color: #17120A; background: linear-gradient(180deg, var(--gold-lit), var(--gold));
+  box-shadow: 0 1px 6px rgba(0,0,0,.5);
+}
+.c-tag-past {
+  color: rgba(240,230,205,.82);
+  background: rgba(40,34,26,.94);
+  border: 1px solid rgba(227,178,60,.5);
+}
+.c-rank {
+  position: absolute; top: 7px; left: 9px;
+  font-size: 10.5px; font-variant-numeric: tabular-nums;
+  color: rgba(235,225,200,.42);
+}
+
+/* resonance, per god, on the cell itself */
+.c-aff { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+.c-aff-track {
+  flex: 1; height: 6px; border-radius: 999px; overflow: hidden;
+  background: rgba(255,240,210,.13);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.5);
+}
+.c-aff-fill {
+  /* even a 1% resonance gets a visible sliver — an empty track reads as
+     "no data", not as "a little" */
+  display: block; height: 100%; border-radius: 999px; min-width: 5px;
+  background: linear-gradient(90deg, var(--bar-b, #888), var(--bar-a, #fff));
+  transform-origin: 0 50%;
+  animation: barGrow .8s .15s cubic-bezier(.16,1,.3,1) both;
+}
+.c-aff-n {
+  font-size: 11px; font-variant-numeric: tabular-nums;
+  color: rgba(235,225,200,.72); min-width: 30px; text-align: right;
+}
+.cx-you {
+  margin-top: 7px; font-size: 13.5px; line-height: 1.5;
+  color: var(--gold-lit);
+}
 
 /* ---- 14. accessibility: reduced motion -------------------------------- */
 /* Kills parallax, particles, shake and ALL flashes including the lightning
@@ -984,7 +1081,7 @@ html, body {
 .reduced #prompt { opacity: 1 !important; transform: none !important; }
 .reduced #claimSymbol { opacity: 1 !important; transform: translate(-50%,-50%) scale(1) !important; }
 .reduced #claimName .ch { opacity: 1 !important; transform: none !important; }
-.reduced .bar-fill { transform: scaleX(1) !important; }
+.reduced .bar-fill, .reduced .c-aff-fill { transform: scaleX(1) !important; }
 .reduced .satchel-item { opacity: 1 !important; transform: none !important; }
 .reduced #card { opacity: 1 !important; transform: none !important; }
 .reduced .card-hero .halo { opacity: .5 !important; }

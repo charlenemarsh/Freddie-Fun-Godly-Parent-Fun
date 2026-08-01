@@ -26,14 +26,16 @@ const Select = (function () {
     if (G.reduced) { el.innerHTML = '&ldquo;' + text + '&rdquo;'; return; }
     let i = 0;
     el.innerHTML = '<span class="caret"></span>';
+    // brisk: a player sweeping across all five heroes restarts this each
+    // time, and at the old speed the line never finished before it changed
     typeTimer = setInterval(() => {
-      i++;
+      i += 2;
       el.innerHTML = '&ldquo;' + text.slice(0, i) + '&rdquo;<span class="caret"></span>';
       if (i >= text.length) {
         clearInterval(typeTimer);
-        setTimeout(() => { el.innerHTML = '&ldquo;' + text + '&rdquo;'; }, 900);
+        setTimeout(() => { el.innerHTML = '&ldquo;' + text + '&rdquo;'; }, 600);
       }
-    }, 26);
+    }, 16);
   }
 
   function focus(dir) {

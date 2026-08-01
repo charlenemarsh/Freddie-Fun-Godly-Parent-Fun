@@ -107,7 +107,7 @@ const Junction = (function () {
     // the hero turns into the choice before the camera whips round
     Rig.setState(Rig.poseForDirection(dir));
 
-    const wait = G.reduced ? 160 : 560;
+    const wait = G.reduced ? 140 : 380;
     setTimeout(() => {
       D.junction.classList.remove('on');
       D.vignette.classList.remove('tight');
@@ -118,17 +118,37 @@ const Junction = (function () {
 
   /* ---- the tutorial, once, on the very first junction ------------------ */
 
+  /* While this is up it owns the screen: the road hears nothing, so no
+     answer can be given by accident while dismissing it. And there are four
+     ways out — the button, anywhere on the backdrop, Escape, or any key at
+     all. A child must never be able to get stuck behind a message. */
   function showTutorial(then) {
+    let done = false;
+    Input.setModal(true);
     D.tutorial.classList.add('on');
+    D.live.textContent =
+      'Five ways to go. Swipe or use the arrow keys. Press any key or tap to continue.';
+
     const dismiss = () => {
+      if (done) return;
+      done = true;
       D.tutorial.classList.remove('on');
       G.tutorialSeen = true;
-      saveStore();
-      D.tutBtn.removeEventListener('click', dismiss);
+      try { saveStore(); } catch (e) {}       // storage must never trap anyone
+      D.tutorial.removeEventListener('click', dismiss);
+      window.removeEventListener('keydown', onKey, true);
+      Input.setModal(false);
       then();
     };
-    D.tutBtn.addEventListener('click', dismiss);
-    D.tutBtn.focus();
+    const onKey = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.key === 'Tab') return;
+      e.preventDefault();
+      dismiss();
+    };
+
+    D.tutorial.addEventListener('click', dismiss);
+    window.addEventListener('keydown', onKey, true);
+    D.tutBtn.focus({ preventScroll: true });
   }
 
   /* ---------------------------------------------------------------------- */
@@ -144,9 +164,13 @@ const Junction = (function () {
       onDone = done;
       build(q);
 
+      const tutorialFirst = !G.tutorialSeen && G.questionIndex === 0;
+
       D.junction.classList.add('on');
       D.vignette.classList.add('tight');
-      Input.preArm();          // hold any answer given during the bloom
+      // hold any answer given during the bloom — but not when the tutorial is
+      // about to open, or dismissing it would count as an answer
+      if (!tutorialFirst) Input.preArm();
       D.hud.classList.remove('dim');
 
       // announce it for screen readers and for anyone with the sound off
@@ -166,12 +190,11 @@ const Junction = (function () {
 
       Audio2.junction();
 
-      const arm = () => Input.arm();
-      const bloomTime = G.reduced ? 60 : 640;
-      if (!G.tutorialSeen && G.questionIndex === 0) {
-        setTimeout(() => showTutorial(arm), bloomTime);
+      const bloomTime = G.reduced ? 60 : 430;
+      if (tutorialFirst) {
+        setTimeout(() => showTutorial(() => { Input.preArm(); Input.arm(); }), bloomTime);
       } else {
-        setTimeout(arm, bloomTime);
+        setTimeout(() => Input.arm(), bloomTime);
       }
     },
 

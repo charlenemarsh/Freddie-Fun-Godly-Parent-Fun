@@ -4,7 +4,7 @@
    The hero stands in the amphitheatre at dusk, the whole camp gathered in
    silhouette, and then:
 
-     1. three seconds of held silence — fire crackles, everyone looks up.
+     1. held silence — fire crackles, everyone looks up.
         RESIST THE URGE TO FILL THIS. The silence is the effect.
      2. light drains to near-black, desaturating from the edges inward
      3. the god-symbol ignites above their head, rotating, casting light down
@@ -85,20 +85,26 @@ const Claiming = (function () {
     D.claiming.classList.add('on');
 
     D.live.textContent = 'The claiming.';
+    D.claimSkip.classList.remove('on');
 
-    // 1. three seconds of held silence
+    // The one long moment left in the game, and the only one worth keeping.
+    // It is still skippable — but by a button that has to be found and
+    // pressed, never by the tap that a waiting child makes by reflex.
+    after(2200, () => D.claimSkip.classList.add('on'));
+
+    // 1. the held silence
     // 2. light drains to near-black
-    after(1600, () => D.claimDrain.classList.add('on'));
+    after(1200, () => D.claimDrain.classList.add('on'));
 
     // 3. the symbol ignites and casts its light down
-    after(3000, () => {
+    after(2300, () => {
       D.claimSymbol.classList.add('ignite');
       D.claimBeam.classList.add('on');
       Audio2.divine();
     });
 
     // 4. the shockwave, and the crowd kneeling in a wave from the front row back
-    after(4300, () => {
+    after(3300, () => {
       D.claimRing.classList.add('burst');
       Particles.shockwave(window.innerWidth / 2, window.innerHeight * 0.23, c[2]);
       Audio2.thunder();
@@ -114,7 +120,7 @@ const Claiming = (function () {
     });
 
     // 5. the name types out in gold, one bass impact per letter
-    after(5100, () => {
+    after(4100, () => {
       const name = god.name.toUpperCase();
       D.claimName.innerHTML = name.split('').map((ch) =>
         '<span class="ch">' + (ch === ' ' ? '&nbsp;' : ch) + '</span>').join('');
@@ -126,7 +132,7 @@ const Claiming = (function () {
     });
 
     // 6. the chorus speaks the claiming line
-    after(6400, () => {
+    after(5200, () => {
       const epithet = god.epithets[(res.traits.VALOR + res.traits.SHADOW) % god.epithets.length];
       D.claimLine.textContent = 'Hail, child of ' + god.name + ', ' + epithet + '.';
       D.claimLine.classList.add('on');
@@ -135,13 +141,18 @@ const Claiming = (function () {
     });
 
     // 7. the result card slides up
-    after(9200, () => setState(S.RESULT));
+    after(7600, () => setState(S.RESULT));
   }
 
   return {
     init() {
       onEnter(S.CLAIMING, run);
-      onExit(S.CLAIMING, () => { clearAll(); D.claiming.classList.remove('on'); });
+      onExit(S.CLAIMING, () => {
+        clearAll();
+        D.claiming.classList.remove('on');
+        D.claimSkip.classList.remove('on');
+      });
+      D.claimSkip.addEventListener('click', () => Claiming.skip());
     },
     skip() { clearAll(); setState(S.RESULT); },
   };

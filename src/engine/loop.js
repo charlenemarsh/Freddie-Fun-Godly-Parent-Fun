@@ -72,6 +72,7 @@ function buildDOM() {
         '<div id="claimRing"></div>' +
         '<div id="claimName"></div>' +
         '<div id="claimLine"></div>' +
+        '<button type="button" id="claimSkip">Skip</button>' +
       '</div>' +
 
       '<div class="screen" id="resultScreen">' +
@@ -124,6 +125,7 @@ function buildDOM() {
   D.claimDrain = document.getElementById('claimDrain');
   D.claimName = document.getElementById('claimName');
   D.claimLine = document.getElementById('claimLine');
+  D.claimSkip = document.getElementById('claimSkip');
   D.result = document.getElementById('resultScreen');
   D.card = document.getElementById('card');
   D.resultBtns = document.getElementById('resultBtns');
@@ -211,11 +213,21 @@ function hexA(hex, a) {
 let items = [];      // { z, lane, id, el, taken }
 let npcs = [];       // { z, side, id, el }
 
+/* How far down the road a realm actually travels, in z, across its three run
+   segments. Derived rather than hard-coded, so that shortening the segments
+   re-spaces the world automatically instead of quietly stranding every
+   collectible beyond the end of the walk. */
+function realmZBudget(realm) {
+  const perSegment = 1.35;                 // the average of beginRunSegment
+  return (realm.runSpeed / 900) * perSegment * 3;
+}
+
 function spawnItems(realm) {
   D.items.innerHTML = '';
   items = [];
   const pool = realm.collectibles;
   const n = 4 + Math.floor(Math.random() * 3);         // 4-6 per realm
+  const budget = realmZBudget(realm);
   for (let i = 0; i < n; i++) {
     // some items sit in one lane only, so replaying to collect a different
     // set is rewarded
@@ -227,20 +239,28 @@ function spawnItems(realm) {
       '<div class="a-spinSlow" style="width:100%;height:100%">' + collectibleArt(id) + '</div></div>';
     el.firstChild.style.filter = 'drop-shadow(0 0 10px rgba(255,220,140,.8))';
     D.items.appendChild(el);
-    items.push({ z: 1 + i * 0.55 + Math.random() * 0.3, lane: (Math.random() * 2 - 1) * 0.8, id, el, taken: false });
+    // spread evenly over the road that will actually be walked, with the last
+    // one comfortably inside it
+    const z = 0.16 + ((i + 0.5) / n) * (budget * 0.88 - 0.16);
+    items.push({ z, z0: z, lane: (Math.random() * 2 - 1) * 0.8, id, el, taken: false });
   }
 }
 
 function spawnNPCs(realm) {
   D.npcs.innerHTML = '';
   npcs = [];
+  const budget = realmZBudget(realm);
   realm.npcs.forEach((id, i) => {
     const el = document.createElement('div');
     el.style.cssText = 'position:absolute;will-change:transform;pointer-events:none;' +
       'width:260px;height:260px;left:0;top:0';
     el.innerHTML = beastArt(id);
     D.npcs.appendChild(el);
-    npcs.push({ z: 0.75 + i * 0.85, side: i % 2 ? 1 : -1, id, el, reacted: false });
+    npcs.push({
+      z: 0.3 + ((i + 0.5) / realm.npcs.length) * budget,
+      zRecycle: budget,
+      side: i % 2 ? 1 : -1, id, el, reacted: false,
+    });
   });
 }
 
@@ -271,19 +291,26 @@ function stepItems(dt, speed) {
       Audio2.collect();
       continue;
     }
-    if (it.z > 1.05) { it.el.style.opacity = 0; continue; }
+    // fade in relative to where this one started, not a fixed distance, so
+    // items stay visible whatever the realm's travel budget works out to
+    const fade = Math.min(1, Math.max(0, (it.z0 - it.z) / (it.z0 * 0.22 + 0.08)));
+    if (fade <= 0) { it.el.style.opacity = 0; continue; }
     const p = project(it.z, it.lane);
-    it.el.style.opacity = Math.min(1, (1.05 - it.z) * 6);
+    it.el.style.opacity = fade;
     it.el.style.transform = 'translate3d(' + (p.x - 32) + 'px,' + (p.y - 60 * p.s) + 'px,0) scale(' +
       p.s.toFixed(3) + ')';
   }
 }
 
 function stepNPCs(dt, speed) {
-  const dz = (speed / 1400) * dt;                 // NPCs drift by more slowly
+  const dz = (speed / 1150) * dt;                 // NPCs drift by a little more slowly
   for (const n of npcs) {
     n.z -= dz;
-    if (n.z < -0.25) { n.z = 1.5 + Math.random() * 0.9; n.side = Math.random() < 0.5 ? -1 : 1; n.reacted = false; }
+    if (n.z < -0.25) {
+      n.z = n.zRecycle * (0.75 + Math.random() * 0.35);
+      n.side = Math.random() < 0.5 ? -1 : 1;
+      n.reacted = false;
+    }
     const p = project(Math.max(0, n.z), n.side * (1.55 + n.z * 0.45));
     n.el.style.opacity = Math.min(0.95, Math.max(0, (1.15 - n.z) * 2.2));
     // cap the scale: unclamped, a creature that walks right past the camera
@@ -328,13 +355,39 @@ function stepPlane(dt, speed) {
 
 /* ---- 5. realm intro, exit transitions ---------------------------------- */
 
+/* Every wait in this game can be cut short by the player. Nothing holds the
+   screen for longer than they want it to. */
+let skipIntro = null;
+
 function showRealmIntro(then) {
   const realm = currentRealm();
   D.realmIntro.querySelector('.ri-name').textContent = realm.name;
   D.realmIntro.querySelector('.ri-sub').textContent = realm.subtitle;
   D.realmIntro.classList.add('on');
   D.live.textContent = realm.name + '. ' + realm.subtitle;
-  setTimeout(() => { D.realmIntro.classList.remove('on'); then(); }, G.reduced ? 900 : 2500);
+
+  let fired = false;
+  const finish = () => {
+    if (fired) return;
+    fired = true;
+    skipIntro = null;
+    clearTimeout(timer);
+    D.realmIntro.classList.remove('on');
+    then();
+  };
+  const timer = setTimeout(finish, G.reduced ? 700 : 1300);
+  skipIntro = finish;
+}
+
+/* Cut the current run segment short — the player has seen enough and wants
+   the next choice now. It does not snap: a beat is left on the clock so the
+   slow-down into the junction still plays rather than the world stopping
+   dead. */
+function hurryToJunction() {
+  if (G.state !== S.RUNNING) return;
+  const leave = 0.3;
+  if (G.segmentLength - G.runTime <= leave) return;
+  G.runTime = G.segmentLength - leave;
 }
 
 /* Each exit is a distinct full-screen flourish, never a fade. */
@@ -344,35 +397,35 @@ const Transitions = {
       '<div class="tr-trunk tr-left"></div><div class="tr-trunk tr-right"></div>';
     D.transition.className = 'fxlayer tr-on';
     Audio2.whoosh();
-    setTimeout(done, 760);
+    setTimeout(done, 520);
   },
   waveCrash(done) {
     D.transition.innerHTML = '<div class="tr-wave"></div><div class="tr-foam"></div>';
     D.transition.className = 'fxlayer tr-on';
     Audio2.whoosh();
-    setTimeout(done, 900);
+    setTimeout(done, 600);
   },
   whirlpool(done) {
     D.transition.innerHTML = '<div class="tr-spiral"></div><div class="tr-lantern"></div>';
     D.transition.className = 'fxlayer tr-on';
     Audio2.whoosh();
-    setTimeout(done, 1050);
+    setTimeout(done, 700);
   },
   lightningWhite(done) {
     // suppressed entirely under reduced motion — this is the flash rule
-    if (G.reduced) { setTimeout(done, 260); return; }
+    if (G.reduced) { setTimeout(done, 200); return; }
     Audio2.thunder();
     D.flash.classList.add('on');
     setTimeout(() => D.flash.classList.remove('on'), 200);
-    setTimeout(done, 620);
+    setTimeout(done, 460);
   },
   skyDescent(done) {
     D.transition.innerHTML = '<div class="tr-cloud"></div>';
     D.transition.className = 'fxlayer tr-on';
     D.stage.classList.add('tr-spin');
     Audio2.whoosh();
-    setTimeout(() => D.stage.classList.remove('tr-spin'), 1200);
-    setTimeout(done, 1250);
+    setTimeout(() => D.stage.classList.remove('tr-spin'), 800);
+    setTimeout(done, 820);
   },
 };
 
@@ -380,7 +433,7 @@ function runTransition(name, done) {
   const fn = Transitions[name] || Transitions.trunkDive;
   if (G.reduced && name !== 'lightningWhite') {
     D.transition.className = 'fxlayer';
-    setTimeout(done, 240);
+    setTimeout(done, 180);
     return;
   }
   fn(() => { D.transition.className = 'fxlayer'; D.transition.innerHTML = ''; done(); });
@@ -397,7 +450,11 @@ function updateDots() {
 
 function beginRunSegment() {
   G.runTime = 0;
-  G.segmentLength = 4 + Math.random() * 3;          // 4-7 seconds
+  /* Short on purpose. This used to be 4-7 seconds and it was far too long:
+     the game is the choosing, not the walking. What is left is just enough
+     travel to carry you out of the last junction, show the realm moving and
+     sweep in the next one — and it can still be cut short with a tap. */
+  G.segmentLength = 1.1 + Math.random() * 0.5;
   G.targetSpeed = currentRealm().runSpeed;
   G.timeScale = 1;
   Rig.setState('run');
@@ -500,7 +557,7 @@ function frame(now) {
     G.runTime += dt;
     // slow to about 35% as the junction comes up — this moment is the feel
     const left = G.segmentLength - G.runTime;
-    if (left < 0.7) G.timeScale = Math.max(0.35, 0.35 + (left / 0.7) * 0.65);
+    if (left < 0.4) G.timeScale = Math.max(0.35, 0.35 + (left / 0.4) * 0.65);
     if (G.runTime >= G.segmentLength) { G.timeScale = 1; openJunction(); }
   }
 
@@ -567,6 +624,14 @@ function boot() {
     onDrag(dir, strength, dx, dy) {
       if (G.state === S.CHARACTER_SELECT) Select.handleDrag(dir, strength, dx, dy);
       else if (G.state === S.JUNCTION) Junction.handleDrag(dir, strength, dx, dy);
+    },
+    /* A press when there is nothing to answer means "get on with it". No
+       moment in this game holds the screen against the player's wishes. */
+    onIdlePress() {
+      if (G.state === S.RUNNING) hurryToJunction();
+      else if (G.state === S.REALM_INTRO && skipIntro) skipIntro();
+      // the claiming is deliberately NOT here: it is the payoff, and a stray
+      // thumb must not be able to throw it away. It gets its own skip button.
     },
   });
 
