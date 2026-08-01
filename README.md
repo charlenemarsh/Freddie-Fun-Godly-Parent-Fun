@@ -176,6 +176,16 @@ it rendered at 0×0 inside an empty grey track. One line. The lowest bars now
 also carry a `min-width` so a 1% resonance shows a sliver rather than
 nothing, which reads as "a little" instead of "no data".
 
+**`verify.js` was quietly measuring the wrong thing.** It held the RUNNING
+state open by waiting a fixed 3200ms and then pinning `segmentLength`. The
+moment the pacing was shortened, the junction had already opened by then, so
+the "run segment" frame timing was really five seconds of five animated lane
+cards — the most expensive state in the game — and the reported p95 roughly
+doubled with no change to the rendering at all. It now waits for the RUNNING
+state itself, clears the sample window, and warns loudly if the state drifted
+before the sample finished. A timing harness that depends on wall-clock
+guesses will lie to you the first time you change the timing.
+
 **`Claiming.skip()` existed and was never wired to anything.** It is now
 behind the Skip button.
 

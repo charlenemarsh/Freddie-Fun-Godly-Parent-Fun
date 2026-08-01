@@ -8523,6 +8523,9 @@ window.__game = {
   get state() { return G.state; },
   get p95() { return p95(); },
   get fps() { return fps; },
+  /* so a harness can measure one named state cleanly rather than whatever
+     happened to be in the rolling window */
+  resetFrameTimes() { frameTimes.length = 0; },
   G, D, S,
   setState,
   loadRealm,

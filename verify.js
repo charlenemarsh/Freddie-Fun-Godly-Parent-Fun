@@ -170,9 +170,20 @@ async function run(vp) {
       window.__game.jumpTo(3);
       window.__game.setState(window.__game.S.REALM_INTRO);
     });
-    await wait(3200);
+    /* Wait for the RUNNING state itself rather than for a fixed delay, then
+       pin the segment open. A fixed delay silently measured the wrong thing
+       the moment the pacing was shortened: the junction had already opened,
+       so this reported five seconds of five animated lane cards instead of
+       five seconds of the world scrolling. */
+    await page.waitForFunction(() => window.__game.state === 'RUNNING', null, { timeout: 15000 });
     await page.evaluate(() => { window.__game.G.segmentLength = 999; });
+    await wait(600);                            // let the speed ease up to target
+    await page.evaluate(() => { window.__game.resetFrameTimes(); });
     await wait(5000);
+    const sampled = await page.evaluate(() => window.__game.state);
+    if (sampled !== 'RUNNING') {
+      console.log('  WARNING: frame timing sampled in state ' + sampled + ', not RUNNING');
+    }
     p95 = await page.evaluate(() => window.__game.p95);
   }
 
