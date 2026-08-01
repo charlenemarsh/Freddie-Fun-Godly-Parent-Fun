@@ -60,9 +60,21 @@ async function shot(page, dir, name) {
 }
 
 /* A clean page, one state, nothing else touched. Returns p95 in ms.
-   Kept separate from run() so the timing can never inherit the cost of the
-   screenshot pass. */
-async function measureFrameTime(browser, vp) {
+
+   This launches its OWN BROWSER, and that detail is the whole point.
+
+   Measuring inside the screenshot page reported 83-100ms. Moving it to a
+   fresh CONTEXT of the same browser changed nothing — still 100ms — because
+   contexts are isolated for cookies and storage but share the browser's GPU
+   process, and on a software rasteriser that process is exactly what twenty
+   screenshots at deviceScaleFactor 2 have already exhausted. A standalone
+   benchmark in a separately launched browser measured 33.4ms for the same
+   file, repeatably, which is why the timing gets its own browser here. */
+async function measureFrameTime(vp) {
+  const browser = await chromium.launch({
+    executablePath: process.env.PW_CHROMIUM || undefined,
+    args: ['--allow-file-access-from-files', '--force-color-profile=srgb'],
+  });
   const context = await browser.newContext({
     viewport: { width: vp.width, height: vp.height },
     deviceScaleFactor: 2,
@@ -94,6 +106,7 @@ async function measureFrameTime(browser, vp) {
     return await page.evaluate(() => window.__game.p95);
   } finally {
     await context.close();
+    await browser.close();
   }
 }
 
@@ -211,7 +224,7 @@ async function run(vp) {
          this one, for the same file. Time the game, not the harness. --- */
   let p95 = null;
   if (!QUICK) {
-    p95 = await measureFrameTime(browser, vp);
+    p95 = await measureFrameTime(vp);
   }
 
   /* --- the claiming, and the result card, for three different gods --- */
