@@ -53,7 +53,7 @@ function planeSVG(o) {
   let lanes = '';
   for (let i = -2; i <= 2; i++) {
     lanes += '<path d="M800 ' + (PLANE_HORIZON + 4) + ' L' + (800 + i * 400) + ' 900" stroke="' +
-      o.lane + '" stroke-width="' + (i === 0 ? 3 : 2) + '" opacity="' + (i === 0 ? 0.3 : 0.16) +
+      o.lane + '" stroke-width="' + (i === 0 ? 2.4 : 1.6) + '" opacity="' + (i === 0 ? 0.14 : 0.07) +
       '" fill="none"/>';
   }
   return '<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" ' +
@@ -91,7 +91,7 @@ function ridge(y, amp, colour, seed, op) {
 /* one cabin: a small distinct building, lit from within */
 function cabin(x, y, w, h, body, roof, glow, style) {
   const win = '<rect x="' + (x + w * 0.34) + '" y="' + (y - h * 0.55) + '" width="' + (w * 0.32) +
-    '" height="' + (h * 0.3) + '" rx="3" fill="' + glow + '" class="a-flicker"' + dly(x) + '/>';
+    '" height="' + (h * 0.3) + '" rx="3" fill="' + glow + '"/>';
   let top = '';
   if (style === 'peak') {
     top = '<path d="M' + (x - 6) + ' ' + (y - h) + ' L' + (x + w / 2) + ' ' + (y - h - h * 0.5) +
@@ -146,7 +146,7 @@ RealmArt.realm1 = {
     let clouds = '';
     [[200, 176, 210, 40], [640, 130, 260, 46], [1120, 196, 230, 38], [1470, 140, 190, 34]]
       .forEach((c, i) => {
-        clouds += '<g class="a-driftX"' + dly(i * 7) + ' opacity=".82">' +
+        clouds += '<g opacity=".82">' +
           '<ellipse cx="' + c[0] + '" cy="' + c[1] + '" rx="' + c[2] + '" ry="' + c[3] +
             '" fill="#FFE8C2"/>' +
           '<ellipse cx="' + (c[0] - c[2] * 0.42) + '" cy="' + (c[1] + c[3] * 0.34) + '" rx="' +
@@ -166,13 +166,12 @@ RealmArt.realm1 = {
       '<rect width="1600" height="900" fill="url(#' + sky + ')"/>' +
       // a warm band along the whole horizon, so the light reads from any window
       '<rect x="0" y="286" width="1600" height="290" fill="url(#' + band +
-        ')" opacity=".8" class="a-shimmer"/>' +
+        ')" opacity=".8"/>' +
       '<circle cx="1120" cy="404" r="330" fill="url(#' + sun + ')" class="a-shimmer"/>' +
       '<circle cx="1120" cy="404" r="86" fill="#FFFBE8" class="a-pulse"/>' +
       // a second, softer glow so the far side of the strip is warm too
-      '<circle cx="180" cy="430" r="280" fill="url(#' + sun + ')" opacity=".45" class="a-shimmer"' +
-        dly(4) + '/>' +
-      clouds +
+      '<circle cx="180" cy="430" r="280" fill="url(#' + sun + ')" opacity=".45"/>' +
+      '<g class="a-windSlow">' + clouds + '</g>' +
       // a pegasus, very far off
       '<g class="a-driftX" style="animation-duration:11s" opacity=".55">' +
         '<path d="M420 240 q30 -18 60 -3 q-9 16 -33 16 q-19 0 -27 -13z" fill="#FFF6E2"/>' +
@@ -217,7 +216,7 @@ RealmArt.realm1 = {
 
     let far = '';
     for (let i = 0; i < 7; i++) {
-      far += tree(70 + i * 236, HORIZON - 46, 132 + (i % 3) * 40, '#5A4028', '#3E7A56', '#4E8E60');
+      far += tree(70 + i * 236, HORIZON - 46, 132 + (i % 3) * 40, '#5A4028', '#3E7A56', '#4E8E60', false);
     }
     // volumetric god-rays, fanning down from where the sun sits in L0
     const ray = uid('r1');
@@ -225,15 +224,15 @@ RealmArt.realm1 = {
     [[-46, 120], [-22, 74], [2, 150], [26, 92], [52, 128], [78, 60]].forEach((r, i) => {
       const top = 1120 + r[0] * 5;
       rays += '<path d="M' + (1120 + r[0] * 1.2) + ' 360 l' + (-r[1] / 2) + ' 460 h' + r[1] +
-        'Z" fill="url(#' + ray + ')" class="a-shimmer"' + dly(i * 5) +
+        'Z" fill="url(#' + ray + ')"' +
         ' transform="rotate(' + (r[0] * 0.16) + ' ' + top + ' 360)"/>';
     });
 
     return strip(
       '<defs>' + lg(lake, [[0, '#A9DCEE'], [1, '#4E9BC8']]) +
         lg(ray, [[0, '#FFF3C4', 0.55], [1, '#FFD9A0', 0]]) + '</defs>' +
-      farRidge + water + far + nearRidge + pine +
-      '<g style="mix-blend-mode:screen">' + rays + '</g>');
+      farRidge + water + '<g class="a-wind">' + far + '</g>' + nearRidge + pine +
+      '<g class="a-shimmer" opacity=".85">' + rays + '</g>');
   },
 
   /* --- L2 · the cabin horseshoe, Big House, climbing wall, fields ------ */
@@ -272,7 +271,7 @@ RealmArt.realm1 = {
           '<rect x="1204" y="' + (HORIZON - 126) + '" width="30" height="36" rx="3"/>' +
           '<rect x="1262" y="' + (HORIZON - 126) + '" width="30" height="36" rx="3"/>' +
           '<rect x="1320" y="' + (HORIZON - 126) + '" width="30" height="36" rx="3"/></g>' +
-        '<g fill="#FFDDA0" class="a-flicker"' + dly(3) + '>' +
+        '<g fill="#FFDDA0">' +
           '<rect x="1218" y="' + (HORIZON - 78) + '" width="26" height="34" rx="3"/>' +
           '<rect x="1310" y="' + (HORIZON - 78) + '" width="26" height="34" rx="3"/></g>' +
         '<rect x="1274" y="' + (HORIZON - 268) + '" width="5" height="42" fill="#5A4632"/>' +
@@ -309,8 +308,7 @@ RealmArt.realm1 = {
     let tees = '';
     for (let i = 0; i < 6; i++) {
       const x = 120 + i * 42;
-      tees += '<g class="a-sway"' + dly(i * 4) + ' style="transform-origin:' + (x + 15) + 'px ' +
-        (HORIZON - 176) + 'px">' +
+      tees += '<g>' +
         '<path d="M' + x + ' ' + (HORIZON - 176) + ' h30 l5 10 l-8 4 v27 h-24 v-27 l-8 -4Z" ' +
         'fill="' + (i % 2 ? '#E87A2C' : '#F2913E') + '"/></g>';
     }
@@ -319,7 +317,7 @@ RealmArt.realm1 = {
     let rows = '';
     for (let i = 0; i < 3; i++) {
       const y = HORIZON + 22 + i * 26;
-      rows += '<g class="a-sway"' + dly(i * 6) + ' style="transform-origin:800px ' + y + 'px">' +
+      rows += '<g>' +
         '<path d="M0 ' + y + ' q200 -18 400 0 t400 0 t400 0 t400 0" stroke="#3E7A4E" ' +
         'stroke-width="' + (9 + i * 4) + '" fill="none"/></g>';
     }
@@ -342,8 +340,8 @@ RealmArt.realm1 = {
     }
 
     return strip(cabins + shadows + stable + bigHouse + wall +
-      '<path d="M112 ' + (HORIZON - 182) + ' h258" stroke="#8A7A5A" stroke-width="2.4"/>' + tees +
-      fire + rows);
+      '<path d="M112 ' + (HORIZON - 182) + ' h258" stroke="#8A7A5A" stroke-width="2.4"/>' + '<g class="a-wind">' + tees + '</g>' +
+      fire + '<g class="a-windTilt">' + rows + '</g>');
   },
 
   /* --- L3 · warm earth path through cut grass -------------------------- */
@@ -360,6 +358,7 @@ RealmArt.realm1 = {
      the middle of the screen stays clear. */
   L4: () => {
     let g = '';
+    let ground = '';   // grass + berries, animated as one group
 
     // canopy hanging into the top of the frame
     const canopy = (x, w, d, c1, c2) => {
@@ -393,8 +392,7 @@ RealmArt.realm1 = {
 
     // slim trunks at the edges of the frame
     [[60, 46], [1520, 54]].forEach((t, i) => {
-      g += '<g class="a-sway" style="transform-origin:' + t[0] + 'px 900px;animation-duration:' +
-        (14 + i * 2) + 's">' +
+      g += '<g>' +
         '<path d="M' + t[0] + ' 900 l' + (-t[1] * 0.62) + ' -900 h' + (t[1] * 1.24) + 'Z" ' +
           'fill="#4A3524"/>' +
         '<path d="M' + t[0] + ' 900 l' + (-t[1] * 0.2) + ' -900 h' + (t[1] * 0.38) +
@@ -406,10 +404,9 @@ RealmArt.realm1 = {
       const x = (i * 67) % STRIP_W;
       if (x > 620 && x < 980) continue;            // leave the hero's lane clear
       const y = 824 + (i % 4) * 24;
-      g += '<g class="a-swayFast"' + dly(i * 2) + ' style="transform-origin:' + x + 'px ' + y + 'px">' +
-        '<path d="M' + x + ' ' + y + ' q-13 -46 -5 -76 M' + x + ' ' + y + ' q6 -54 20 -70 M' +
-        x + ' ' + y + ' q15 -38 32 -50" stroke="#3E6B3A" stroke-width="8" fill="none" ' +
-        'stroke-linecap="round"/></g>';
+      ground += '<path d="M' + x + ' ' + y + ' q-13 -46 -5 -76 M' + x + ' ' + y +
+        ' q6 -54 20 -70 M' + x + ' ' + y + ' q15 -38 32 -50" stroke="#3E6B3A" ' +
+        'stroke-width="8" fill="none" stroke-linecap="round"/>';
     }
 
     // strawberries close enough to actually see
@@ -417,12 +414,11 @@ RealmArt.realm1 = {
       const x = 110 + i * 195;
       if (x > 640 && x < 960) continue;
       const y = 866 + (i % 3) * 20;
-      g += '<g class="a-bob"' + dly(i * 3) + '>' +
-        '<path d="M' + (x - 18) + ' ' + (y - 16) + ' h36" stroke="#1D4A2C" stroke-width="8" ' +
-          'stroke-linecap="round"/>' +
+      ground += '<path d="M' + (x - 18) + ' ' + (y - 16) + ' h36" stroke="#1D4A2C" ' +
+          'stroke-width="8" stroke-linecap="round"/>' +
         '<circle cx="' + x + '" cy="' + y + '" r="16" fill="#E2543A"/>' +
-        '<circle cx="' + (x - 5) + '" cy="' + (y - 5) + '" r="4" fill="#FFB0A0" opacity=".7"/></g>';
+        '<circle cx="' + (x - 5) + '" cy="' + (y - 5) + '" r="4" fill="#FFB0A0" opacity=".7"/>';
     }
-    return strip(g);
+    return strip(g + '<g class="a-wind">' + ground + '</g>');
   },
 };

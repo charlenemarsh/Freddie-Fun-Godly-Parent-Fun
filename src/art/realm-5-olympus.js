@@ -40,13 +40,25 @@ RealmArt.realm5 = {
   L1: () => {
     // the city on its cloud
     let city = '';
-    for (let i = 0; i < 16; i++) {
-      const x = 260 + i * 74, h = 90 + ((i * 37) % 130);
-      city += '<rect x="' + x + '" y="' + (300 - h) + '" width="' + (34 + (i % 3) * 10) +
-        '" height="' + h + '" fill="#FDFBF5" opacity="' + (0.75 + (i % 3) * 0.07) + '"/>';
-      if (i % 3 === 0) {
-        city += '<path d="M' + (x - 8) + ' ' + (300 - h) + ' L' + (x + 22) + ' ' + (300 - h - 30) +
-          ' L' + (x + 52) + ' ' + (300 - h) + 'Z" fill="#E3B23C" opacity=".85"/>';
+    for (let i = 0; i < 22; i++) {
+      const x = 180 + i * 62, h = 60 + ((i * 53) % 110);
+      const w = 22 + (i % 3) * 9;
+      city += '<rect x="' + x + '" y="' + (300 - h) + '" width="' + w + '" height="' + h +
+        '" fill="#FDFBF5"/>';
+      // give the skyline actual roofs, domes and columns rather than a barcode
+      if (i % 4 === 0) {
+        city += '<path d="M' + (x - 7) + ' ' + (300 - h) + ' L' + (x + w / 2) + ' ' +
+          (300 - h - 22) + ' L' + (x + w + 7) + ' ' + (300 - h) + 'Z" fill="#E3B23C"/>';
+      } else if (i % 4 === 2) {
+        city += '<path d="M' + x + ' ' + (300 - h) + ' a' + (w / 2) + ' ' + (w / 2) +
+          ' 0 0 1 ' + w + ' 0Z" fill="#E8C98A"/>';
+      } else {
+        city += '<rect x="' + (x - 3) + '" y="' + (300 - h - 6) + '" width="' + (w + 6) +
+          '" height="6" fill="#DCD2C0"/>';
+      }
+      if (i % 5 === 1) {
+        city += '<rect x="' + (x + w / 2 - 2) + '" y="' + (300 - h - 46) + '" width="4" ' +
+          'height="26" fill="#E3B23C"/>';
       }
     }
     // the staircase of solidified cloud, spiralling upward
@@ -54,7 +66,7 @@ RealmArt.realm5 = {
     for (let i = 0; i < 14; i++) {
       const x = 700 + Math.sin(i * 0.55) * 300, y = 540 - i * 20, w = 190 - i * 8;
       stair += '<ellipse cx="' + x + '" cy="' + y + '" rx="' + w + '" ry="' + (20 - i * 0.7) +
-        '" fill="#FDFBF5" opacity="' + (0.9 - i * 0.045) + '" class="a-driftY"' + dly(i * 3) + '/>';
+        '" fill="#FDFBF5" opacity="' + (0.9 - i * 0.045) + '"/>';
     }
     return strip(
       '<g class="a-driftY" style="animation-duration:12s">' +
@@ -62,7 +74,7 @@ RealmArt.realm5 = {
         '<ellipse cx="500" cy="300" rx="260" ry="56" fill="#F5EFFF" opacity=".8"/>' +
         '<ellipse cx="1180" cy="304" rx="280" ry="52" fill="#F5EFFF" opacity=".8"/>' +
         city +
-      '</g>' + stair);
+      '</g>' + '<g class="a-driftY">' + stair + '</g>');
   },
 
   /* --- L2 · colonnade, the twelve thrones, Hestia's hearth ------------- */
@@ -86,7 +98,7 @@ RealmArt.realm5 = {
     let thrones = '';
     throneCols.forEach((c, i) => {
       const t = (i / 11) * Math.PI;
-      const x = 800 - Math.cos(t) * 560, y = 500 - Math.sin(t) * 40, s = 0.6 + Math.sin(t) * 0.4;
+      const x = 800 - Math.cos(t) * 620, y = 512 - Math.sin(t) * 34, s = 0.34 + Math.sin(t) * 0.22;
       thrones += '<g transform="translate(' + x.toFixed(0) + ' ' + y.toFixed(0) + ') scale(' +
         s.toFixed(2) + ')">' +
         '<rect x="-26" y="-70" width="52" height="76" rx="6" fill="' + c + '" opacity=".9"/>' +
@@ -94,7 +106,7 @@ RealmArt.realm5 = {
         '<path d="M-26 -70 l26 -26 l26 26Z" fill="' + c + '"/>' +
         '<rect x="-30" y="-40" width="8" height="46" rx="3" fill="#EFE8DA" opacity=".85"/>' +
         '<rect x="22" y="-40" width="8" height="46" rx="3" fill="#EFE8DA" opacity=".85"/>' +
-        '<circle cx="0" cy="-84" r="7" fill="' + c + '" class="a-shimmer"' + dly(i * 3) + '/></g>';
+        '<circle cx="0" cy="-84" r="7" fill="' + c + '"/></g>';
     });
     // Hestia's hearth at the exact centre, and the girl who tends it
     const hearth =
@@ -125,23 +137,25 @@ RealmArt.realm5 = {
     });
     return strip(
       '<defs>' + lg(mar, [[0, '#FFFFFF'], [0.5, '#FDFBF5'], [1, '#DCD2C0']], 0, 0, 1, 0) + '</defs>' +
-      thrones + cols + pots + hearth);
+      '<g class="a-shimmer" style="animation-duration:5s">' + thrones + '</g>' +
+      cols + pots + hearth);
   },
 
   /* --- L3 · a polished marble causeway --------------------------------- */
   L3: () => planeSVG({
-    far: '#F0EAF8', near: '#E4DCF0', nearest: '#D6CCE8',
-    pathFar: '#FFFFFF', pathNear: '#F2ECFA',
-    rung: '#E3B23C', lane: '#7B5FC4', edge: '#C0B4DC',
+    far: '#D8CEEE', near: '#C6BAE2', nearest: '#B0A2D2',
+    pathFar: '#FFFDF6', pathNear: '#EDE4F6',
+    rung: '#E3B23C', lane: '#7B5FC4', edge: '#9E8ECA',
   }),
 
   /* --- L4 · braziers, gold rails, cloud tearing past the lens ---------- */
   L4: () => {
-    let g = '';
+    let g = '', shreds = '';
     // cloud shreds streaming past
     for (let i = 0; i < 7; i++) {
       const x = i * 240, y = 700 + (i % 3) * 70;
-      g += '<g class="a-driftX"' + dly(i * 4) + ' opacity=".55">' +
+      if (x > 600 && x < 1000) continue;          // keep the hero's lane clear
+      shreds += '<g opacity=".55">' +
         '<ellipse cx="' + x + '" cy="' + y + '" rx="170" ry="34" fill="#FFFFFF"/>' +
         '<ellipse cx="' + (x + 90) + '" cy="' + (y + 22) + '" rx="120" ry="26" fill="#F5EFFF"/></g>';
     }
@@ -160,6 +174,6 @@ RealmArt.realm5 = {
           '<path d="M-20 -84 q10 -72 22 -90 q-6 44 8 54 q6 -46 14 -60 q12 68 -12 96Z" fill="#FFD98A"/>' +
           '<path d="M-8 -84 q6 -44 12 -56 q0 28 8 32 q0 -24 6 -32 q6 40 -8 56Z" fill="#FFFBE8"/></g></g>';
     });
-    return strip(g);
+    return strip('<g class="a-windSlow">' + shreds + '</g>' + g);
   },
 };

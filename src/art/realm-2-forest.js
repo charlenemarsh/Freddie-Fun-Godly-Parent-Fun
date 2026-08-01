@@ -18,7 +18,7 @@ RealmArt.realm2 = {
     let gaps = '';
     [[300, 90, 120], [760, 60, 170], [1180, 100, 140]].forEach((c, i) => {
       gaps += '<ellipse cx="' + c[0] + '" cy="' + c[1] + '" rx="' + c[2] + '" ry="' + (c[2] * 0.4) +
-        '" fill="#CFE8B8" opacity=".5" class="a-shimmer"' + dly(i * 6) + '/>';
+        '" fill="#CFE8B8" opacity=".5"/>';
     });
     return strip(
       '<defs>' + lg(sky, [[0, '#1B3A2C'], [0.4, '#123B2A'], [1, '#0C1B2A']]) + '</defs>' +
@@ -53,8 +53,7 @@ RealmArt.realm2 = {
     const xs = [90, 300, 520, 880, 1120, 1380];
     xs.forEach((x, i) => {
       const w = 52 + (i % 3) * 18;
-      trunks += '<g class="a-sway" style="transform-origin:' + x + 'px 560px;animation-duration:' +
-        (9 + i) + 's">' +
+      trunks += '<g>' +
         '<path d="M' + x + ' 560 l' + (-w * 0.5) + ' -' + (520 + i * 20) + ' h' + w + 'Z" fill="#22412E"/>' +
         '<path d="M' + x + ' 560 l' + (-w * 0.2) + ' -' + (520 + i * 20) + ' h' + (w * 0.36) +
           'Z" fill="#2E5540" opacity=".7"/>' +
@@ -90,7 +89,7 @@ RealmArt.realm2 = {
     [[240, 552], [700, 560], [1000, 548]].forEach((c, i) => {
       for (let j = 0; j < 7; j++) {
         const a = (j / 7) * 6.2832, x = c[0] + Math.cos(a) * 62, y = c[1] + Math.sin(a) * 15;
-        shrooms += '<g class="a-shimmer"' + dly(i * 5 + j * 2) + '>' +
+        shrooms += '<g>' +
           '<rect x="' + (x - 3) + '" y="' + (y - 14) + '" width="6" height="15" rx="2" fill="#CFE8B8"/>' +
           '<ellipse cx="' + x + '" cy="' + (y - 15) + '" rx="12" ry="7" fill="#8ED17F"/>' +
           '<ellipse cx="' + x + '" cy="' + (y - 16) + '" rx="7" ry="4" fill="#FFD98A" opacity=".8"/></g>';
@@ -112,7 +111,8 @@ RealmArt.realm2 = {
         'fill="none" stroke-linecap="round"/></g>' +
       '<ellipse cx="1470" cy="562" rx="40" ry="17" fill="#0A1C14"/>' +
       '<ellipse cx="1470" cy="558" rx="32" ry="13" fill="#050E0A"/></g>';
-    return strip(trunks + fist + stream + shrooms + tunnels + dryad);
+    return strip('<g class="a-windTilt">' + trunks + '</g>' + fist + stream +
+      '<g class="a-shimmer">' + shrooms + '</g>' + tunnels + dryad);
   },
 
   /* --- L3 · a soft leaf-litter trail ---------------------------------- */
@@ -124,11 +124,10 @@ RealmArt.realm2 = {
 
   /* --- L4 · enormous trunks sweeping past, ferns at the lens ---------- */
   L4: () => {
-    let g = '';
+    let g = '', ferns = '';
     // three huge near trunks — these are what the exit transition dives between
     [[120, 190], [820, 150], [1420, 210]].forEach((t, i) => {
-      g += '<g class="a-sway" style="transform-origin:' + t[0] + 'px 900px;animation-duration:' +
-        (13 + i * 2) + 's">' +
+      g += '<g>' +
         '<path d="M' + t[0] + ' 900 l' + (-t[1] / 2) + ' -900 h' + t[1] + 'Z" fill="#0B1F16"/>' +
         '<path d="M' + t[0] + ' 900 l' + (-t[1] * 0.16) + ' -900 h' + (t[1] * 0.3) +
           'Z" fill="#16321F" opacity=".8"/></g>';
@@ -136,11 +135,11 @@ RealmArt.realm2 = {
     // ferns crowding the bottom of the frame
     for (let i = 0; i < 16; i++) {
       const x = (i * 103) % STRIP_W, y = 880 + (i % 3) * 20;
-      g += '<g class="a-swayFast"' + dly(i * 3) + ' style="transform-origin:' + x + 'px ' + y + 'px">' +
-        '<path d="M' + x + ' ' + y + ' q-30 -50 -14 -96 M' + x + ' ' + y + ' q6 -60 26 -84 M' +
-        x + ' ' + y + ' q34 -40 54 -50" stroke="#1D4A2C" stroke-width="9" fill="none" ' +
-        'stroke-linecap="round"/></g>';
+      ferns += '<path d="M' + x + ' ' + y + ' q-30 -50 -14 -96 M' + x + ' ' + y +
+        ' q6 -60 26 -84 M' + x + ' ' + y + ' q34 -40 54 -50" stroke="#1D4A2C" ' +
+        'stroke-width="9" fill="none" stroke-linecap="round"/>';
     }
-    return strip(g);
+    return strip('<g class="a-windTilt">' + g + '</g>' +
+      '<g class="a-wind">' + ferns + '</g>');
   },
 };

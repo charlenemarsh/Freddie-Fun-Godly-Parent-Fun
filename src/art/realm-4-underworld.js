@@ -20,8 +20,7 @@ RealmArt.realm4 = {
     for (let i = 0; i < 9; i++) {
       const x = i * 190;
       veins += '<path d="M' + x + ' 0 q' + (40 - (i % 3) * 30) + ' 90 ' + (10 + (i % 4) * 20) +
-        ' 190" stroke="#9B6BD9" stroke-width="2" fill="none" opacity=".22" class="a-shimmer"' +
-        dly(i * 4) + '/>';
+        ' 190" stroke="#9B6BD9" stroke-width="2" fill="none" opacity=".22"/>';
     }
     return strip(
       '<defs>' + lg(sky, [[0, '#07060B'], [0.55, '#120E1E'], [1, '#1B1430']]) + '</defs>' +
@@ -29,24 +28,24 @@ RealmArt.realm4 = {
       // the roof of the world, hanging low
       '<path d="M0 0 h1600 v120 q-100 46 -200 6 q-120 -40 -220 14 q-140 52 -260 -10 ' +
         'q-130 -66 -250 8 q-140 60 -280 -8 q-180 -84 -390 24Z" fill="#050409"/>' +
-      veins);
+      '<g class="a-shimmer">' + veins + '</g>');
   },
 
   /* --- L1 · Asphodel: an endless plain of pale swaying grass ----------- */
   L1: () => {
     let grass = '';
-    for (let i = 0; i < 60; i++) {
-      const x = (i * 27) % STRIP_W, y = HORIZON - 6 + (i % 5) * 5, h = 30 + (i % 6) * 9;
-      grass += '<path d="M' + x + ' ' + y + ' q' + ((i % 2) ? 8 : -8) + ' -' + (h * 0.6) + ' ' +
-        ((i % 2) ? 3 : -3) + ' -' + h + '" stroke="#B8B2A0" stroke-width="2.4" fill="none" ' +
-        'opacity=".5" stroke-linecap="round"/>';
+    for (let i = 0; i < 150; i++) {
+      const x = (i * 11.4) % STRIP_W, y = HORIZON - 4 + (i % 7) * 4;
+      const h = 18 + (i % 9) * 6, lean = ((i % 5) - 2) * 3;
+      grass += '<path d="M' + x + ' ' + y + ' q' + lean + ' -' + (h * 0.6) + ' ' + (lean * 1.7) +
+        ' -' + h + '" stroke="#C4BEAA" stroke-width="1.3" fill="none" ' +
+        'opacity="' + (0.28 + (i % 4) * 0.11).toFixed(2) + '" stroke-linecap="round"/>';
     }
     // black poplar groves on the horizon
     let poplars = '';
     for (let i = 0; i < 12; i++) {
       const x = 40 + i * 136;
-      poplars += '<g class="a-sway" style="transform-origin:' + x + 'px ' + HORIZON + 'px;' +
-        'animation-duration:' + (10 + (i % 4)) + 's">' +
+      poplars += '<g>' +
         '<path d="M' + x + ' ' + HORIZON + ' v-' + (150 + (i % 3) * 40) + '" stroke="#0A0810" ' +
           'stroke-width="7"/>' +
         '<ellipse cx="' + x + '" cy="' + (HORIZON - 130 - (i % 3) * 40) + '" rx="26" ry="' +
@@ -55,7 +54,7 @@ RealmArt.realm4 = {
     return strip(
       ridge(HORIZON - 40, 26, '#141020', 700, 0.9) +
       '<g class="a-sway" style="transform-origin:800px ' + HORIZON + 'px;animation-duration:13s">' +
-      grass + '</g>' + poplars +
+      grass + '</g>' + '<g class="a-windTilt">' + poplars + '</g>' +
       // the EZ-DEATH queue sign, flickering neon, far off to one side
       '<g class="a-flicker"><rect x="120" y="400" width="150" height="46" rx="6" fill="#12101C" ' +
         'stroke="#4EE59A" stroke-width="2"/>' +
@@ -136,24 +135,26 @@ RealmArt.realm4 = {
   L3: () => planeSVG({
     far: '#181428', near: '#100D18', nearest: '#0A0810',
     pathFar: '#4A4458', pathNear: '#2E2A3C',
-    rung: '#9B6BD9', lane: '#4EE59A', edge: '#050409',
+    rung: '#9B6BD9', lane: '#7E6AA8', edge: '#050409',
   }),
 
   /* --- L4 · drifting spirits and guttering braziers -------------------- */
   L4: () => {
-    let g = '';
+    let g = '', spirits = '';
     // spirits: pale translucent forms that turn to look as you pass
-    [[220, 760, 1.6], [980, 800, 1.3], [1420, 740, 1.8]].forEach((s, i) => {
-      g += '<g class="a-bob"' + dly(i * 5) + ' transform="translate(' + s[0] + ' ' + s[1] +
+    [[200, 742, 0.85], [1040, 770, 0.7], [1450, 730, 0.95]].forEach((s, i) => {
+      spirits += '<g transform="translate(' + s[0] + ' ' + s[1] +
         ') scale(' + s[2] + ')" opacity=".42">' +
         '<path d="M0 -100 q40 0 40 58 q0 48 -14 74 q-9 18 -26 18 t-26 -18 q-14 -26 -14 -74 ' +
           'q0 -58 40 -58z" fill="#E8E2D0"/>' +
-        '<g class="a-shimmer"><circle cx="-13" cy="-46" r="6" fill="#9B6BD9"/>' +
-          '<circle cx="13" cy="-46" r="6" fill="#9B6BD9"/></g>' +
-        '<path d="M-11 -24 q11 8 22 0" stroke="#B8B2A0" stroke-width="3" fill="none" opacity=".7"/></g>';
+        // hollows where the eyes were, not eyes. Sad, not comic.
+        '<g class="a-shimmer" opacity=".55">' +
+          '<ellipse cx="-11" cy="-48" rx="4.5" ry="6.5" fill="#5E4A88"/>' +
+          '<ellipse cx="11" cy="-48" rx="4.5" ry="6.5" fill="#5E4A88"/></g>' +
+        '<path d="M-8 -26 q8 3 16 0" stroke="#8A82A0" stroke-width="2" fill="none" opacity=".4"/></g>';
     });
     // braziers close to the lens, guttering
-    [[80, 900], [820, 900], [1520, 900]].forEach((b, i) => {
+    [[110, 900], [1180, 900], [1520, 900]].forEach((b, i) => {
       g += '<g transform="translate(' + b[0] + ' ' + b[1] + ')">' +
         '<path d="M-34 0 l10 -70 h48 l10 70Z" fill="#1A1622"/>' +
         '<ellipse cx="0" cy="-70" rx="34" ry="9" fill="#2A2434"/>' +
@@ -162,6 +163,6 @@ RealmArt.realm4 = {
           '<path d="M-10 -74 q6 -46 14 -58 q0 28 8 34 q0 -26 8 -34 q6 42 -10 58Z" fill="#FFD98A"/>' +
         '</g></g>';
     });
-    return strip(g);
+    return strip('<g class="a-driftY">' + spirits + '</g>' + g);
   },
 };

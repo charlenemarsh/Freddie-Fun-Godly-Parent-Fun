@@ -150,10 +150,17 @@ function measureStrip() {
   });
 }
 
-/* how many copies of the strip we need to cover the viewport, plus one */
+/* One copy is as wide as the viewport is tall x 16/9, so two copies cover
+   every viewport we target and a third is pure cost. Recomputed on resize. */
+function copiesNeeded() {
+  const copyW = window.innerHeight * (1600 / 900);
+  return Math.max(2, Math.ceil(window.innerWidth / copyW) + 1);
+}
+
 function fillStrips(art) {
   const layers = [art.L0(), art.L1(), art.L2(), art.L4()];
-  D.strips.forEach((s, i) => { s.innerHTML = layers[i] + layers[i] + layers[i]; });
+  const n = copiesNeeded();
+  D.strips.forEach((s, i) => { s.innerHTML = layers[i].repeat(n); });
   D.plane.innerHTML = art.L3();
   planeRungs = Array.prototype.slice.call(D.plane.querySelectorAll('.rung'));
   measureStrip();
@@ -279,8 +286,11 @@ function stepNPCs(dt, speed) {
     if (n.z < -0.25) { n.z = 1.5 + Math.random() * 0.9; n.side = Math.random() < 0.5 ? -1 : 1; n.reacted = false; }
     const p = project(Math.max(0, n.z), n.side * (1.55 + n.z * 0.45));
     n.el.style.opacity = Math.min(0.95, Math.max(0, (1.15 - n.z) * 2.2));
-    n.el.style.transform = 'translate3d(' + (p.x - 130) + 'px,' + (p.y - 232 * p.s) + 'px,0) scale(' +
-      (p.s * 0.95).toFixed(3) + ')';
+    // cap the scale: unclamped, a creature that walks right past the camera
+    // fills half the screen and reads as an unidentifiable shape
+    const ns = Math.min(p.s * 0.95, 0.72);
+    n.el.style.transform = 'translate3d(' + (p.x - 130) + 'px,' + (p.y - 232 * ns) + 'px,0) scale(' +
+      ns.toFixed(3) + ')';
     // they react as you draw level with them
     if (!n.reacted && n.z < 0.35) {
       n.reacted = true;
@@ -568,8 +578,12 @@ function boot() {
   initHUD();
 
   onEnter(S.REALM_INTRO, () => {
+    D.hud.classList.remove('hidden');
     Rig.mount(D.hero, G.hero);
     showRealmIntro(beginRunSegment);
+  });
+  [S.TITLE, S.CHARACTER_SELECT, S.RESULT, S.CODEX, S.CLAIMING].forEach((st) => {
+    onEnter(st, () => D.hud.classList.add('hidden'));
   });
   onEnter(S.CLAIMING, () => { G.speed = 0; G.timeScale = 1; });
 

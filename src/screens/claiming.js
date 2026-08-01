@@ -100,7 +100,7 @@ const Claiming = (function () {
     // 4. the shockwave, and the crowd kneeling in a wave from the front row back
     after(4300, () => {
       D.claimRing.classList.add('burst');
-      Particles.shockwave(window.innerWidth / 2, window.innerHeight * 0.30, c[2]);
+      Particles.shockwave(window.innerWidth / 2, window.innerHeight * 0.23, c[2]);
       Audio2.thunder();
       const rows = D.claimStage.querySelectorAll('.cwd');
       rows.forEach((el) => {
@@ -116,7 +116,6 @@ const Claiming = (function () {
     // 5. the name types out in gold, one bass impact per letter
     after(5100, () => {
       const name = god.name.toUpperCase();
-      D.claimName.className = 'display';
       D.claimName.innerHTML = name.split('').map((ch) =>
         '<span class="ch">' + (ch === ' ' ? '&nbsp;' : ch) + '</span>').join('');
       const chs = D.claimName.querySelectorAll('.ch');

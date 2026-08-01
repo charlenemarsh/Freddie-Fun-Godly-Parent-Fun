@@ -151,6 +151,18 @@ async function run(vp) {
     window.__game.G.tutorialSeen = false;
   });
 
+  /* --- what is actually rasterising? A headless container with no GPU
+         falls back to SwiftShader, where a full-screen composited scene is
+         an order of magnitude slower than on real hardware. Report it, so
+         the frame numbers below are never read out of context. --- */
+  const renderer = await page.evaluate(() => {
+    try {
+      const gl = document.createElement('canvas').getContext('webgl');
+      const d = gl && gl.getExtension('WEBGL_debug_renderer_info');
+      return d ? gl.getParameter(d.UNMASKED_RENDERER_WEBGL) : 'unknown';
+    } catch (e) { return 'unavailable'; }
+  });
+
   /* --- frame timing over a five-second run segment --- */
   let p95 = null;
   if (!QUICK) {
@@ -217,7 +229,7 @@ async function run(vp) {
     document.documentElement.scrollWidth > window.innerWidth + 1);
 
   await browser.close();
-  return { p95, exportOK, overflow };
+  return { p95, exportOK, overflow, renderer };
 }
 
 (async () => {
@@ -232,10 +244,16 @@ async function run(vp) {
   networkAttempts.slice(0, 12).forEach((e) => console.log('      x ' + e));
   results.forEach((r, i) => {
     console.log('  ' + VIEWPORTS[i].name + ':');
+    const soft = /swiftshader|llvmpipe|software/i.test(r.renderer);
     if (r.p95 !== null) {
       console.log('      p95 frame time   ' + r.p95.toFixed(2) + 'ms  ' +
-        (r.p95 < 16.7 ? '(under 16.7ms target)' : '(OVER the 16.7ms target)'));
+        (r.p95 < 16.7 ? '(under the 16.7ms target)'
+                      : soft ? '(over 16.7ms, but see the renderer below)'
+                             : '(OVER the 16.7ms target)'));
     }
+    console.log('      renderer         ' + r.renderer +
+      (soft ? '\n                       ^ software rasteriser, no GPU: frame times here\n' +
+              '                         are not representative of real hardware' : ''));
     console.log('      PNG export       ' + (r.exportOK.ok
       ? 'works from file:// (' + Math.round(r.exportOK.len / 1024) + ' KB data URL)'
       : 'FAILED -> falls back to screenshot mode: ' + (r.exportOK.err || '')));

@@ -19,7 +19,7 @@ RealmArt.realm3 = {
     for (let i = 0; i < 7; i++) {
       const x = 60 + i * 230;
       shafts += '<path d="M' + x + ' 0 h70 l' + (40 + i * 6) + ' 900 h-150Z" fill="#9FF0FF" ' +
-        'opacity="' + (0.10 + (i % 3) * 0.035) + '" class="a-shimmer"' + dly(i * 5) + '/>';
+        'opacity="' + (0.10 + (i % 3) * 0.035) + '"/>';
     }
     return strip(
       '<defs>' + lg(sky, [[0, '#2A9AB4'], [0.32, '#1E7A8C'], [0.72, '#0A2A43'], [1, '#041A2C']]) +
@@ -31,7 +31,7 @@ RealmArt.realm3 = {
         't160 0 t160 0 t160 0 V0 H-60Z" fill="#5AC8DC" opacity=".55"/></g>' +
       '<g class="a-wave" style="animation-delay:-2.4s"><path d="M-60 74 q80 -30 160 0 t160 0 t160 0 ' +
         't160 0 t160 0 t160 0 t160 0 t160 0 t160 0 t160 0 V20 H-60Z" fill="#7CE0EE" opacity=".28"/></g>' +
-      shafts);
+      '<g class="a-shimmer">' + shafts + '</g>');
   },
 
   /* --- L1 · the abyss below, and the palace glow ----------------------- */
@@ -58,7 +58,7 @@ RealmArt.realm3 = {
     let pod = '';
     for (let i = 0; i < 4; i++) {
       const x = 200 + i * 90, y = 250 + (i % 2) * 60;
-      pod += '<g class="a-driftX"' + dly(i * 4) + ' opacity=".55" transform="translate(' + x + ' ' + y +
+      pod += '<g opacity=".55" transform="translate(' + x + ' ' + y +
         ') scale(1.1)">' +
         '<path d="M0 0 q26 -18 54 -6 q-10 16 -30 16 q-18 0 -24 -10z" fill="#4FD1D9"/>' +
         '<path d="M8 -4 q6 -22 22 -20 q-4 16 -12 22z" fill="#7CE7F0" class="a-swayFast"/>' +
@@ -66,7 +66,7 @@ RealmArt.realm3 = {
     }
     return strip(
       '<defs>' + rg(pal, [[0, '#CFF8FF', 0.55], [1, '#0A2A43', 0]], 0.5, 0.5, 0.5) + '</defs>' +
-      rocks + palace + pod);
+      rocks + palace + '<g class="a-windSlow">' + pod + '</g>');
   },
 
   /* --- L2 · kelp cathedral, trireme, anemone garden, pearl caverns ----- */
@@ -75,8 +75,7 @@ RealmArt.realm3 = {
     let kelp = '';
     for (let i = 0; i < 16; i++) {
       const x = 40 + i * 100, h = 300 + (i % 4) * 90;
-      kelp += '<g class="a-sway" style="transform-origin:' + x + 'px 560px;animation-duration:' +
-        (7 + (i % 5)) + 's">' +
+      kelp += '<g>' +
         '<path d="M' + x + ' 560 q' + ((i % 2 ? 40 : -40)) + ' -' + (h * 0.55) + ' ' +
           ((i % 2 ? -12 : 12)) + ' -' + h + '" stroke="#2E7A5E" stroke-width="' + (12 - (i % 3) * 2) +
           '" fill="none" stroke-linecap="round" opacity=".9"/>';
@@ -110,48 +109,50 @@ RealmArt.realm3 = {
           ['#F7C9C0', '#F5A8C0', '#EDE6F2'][i % 3] + '" stroke-width="5" fill="none" ' +
           'stroke-linecap="round"/>';
       }
-      anem += '<g class="a-pulse"' + dly(i * 3) + ' style="transform-origin:' + x + 'px ' + y + 'px">' +
+      anem += '<g>' +
         arms + '<ellipse cx="' + x + '" cy="' + y + '" rx="17" ry="7" fill="#B98CB4"/></g>';
     }
     // pearl caverns in the far wall
     let pearls = '';
     [[1300, 500], [1400, 530], [1240, 540], [1470, 505]].forEach((p, i) => {
-      pearls += '<g class="a-bob"' + dly(i * 4) + '>' +
+      pearls += '<g>' +
         '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (16 + i * 3) + '" fill="#EDE6F2" opacity=".9"/>' +
         '<circle cx="' + (p[0] - 5) + '" cy="' + (p[1] - 6) + '" r="6" fill="#FFFFFF" opacity=".8"/></g>';
     });
     return strip(
       '<path d="M1180 560 q60 -100 160 -110 q120 -12 200 40 v70Z" fill="#0A2A43"/>' +
-      pearls + kelp + ship + anem);
+      '<g class="a-driftY">' + pearls + '</g>' +
+      '<g class="a-windTilt">' + kelp + '</g>' + ship +
+      '<g class="a-pulse" style="transform-origin:800px 570px">' + anem + '</g>');
   },
 
   /* --- L3 · a pale sand corridor between reef walls -------------------- */
   L3: () => planeSVG({
     far: '#12556B', near: '#0C4058', nearest: '#082C40',
-    pathFar: '#9FCBD4', pathNear: '#6FA6B8',
+    pathFar: '#8FBECB', pathNear: '#4E8A9E',
     rung: '#CFF8FF', lane: '#7CE7F0', edge: '#062334',
   }),
 
   /* --- L4 · bubble columns and coral at the lens ----------------------- */
   L4: () => {
-    let g = '';
+    let g = '', cols = '';
     // rising bubble columns, big and close
     for (let i = 0; i < 5; i++) {
       const x = 120 + i * 330;
+      if (x > 640 && x < 960) continue;           // keep the hero's lane clear
       for (let j = 0; j < 6; j++) {
-        g += '<circle cx="' + (x + (j % 2 ? 22 : -18)) + '" cy="' + (880 - j * 60) + '" r="' +
-          (9 + (j % 3) * 5) + '" fill="none" stroke="#CFF8FF" stroke-width="3" opacity=".45" ' +
-          'class="a-rise"' + dly(i * 4 + j * 2) + '/>';
+        cols += '<circle cx="' + (x + (j % 2 ? 22 : -18)) + '" cy="' + (880 - j * 62) + '" r="' +
+          (4 + (j % 3) * 3) + '" fill="none" stroke="#CFF8FF" stroke-width="1.8" opacity=".38"/>';
       }
     }
     // coral fans at the very front
     [[80, 900], [700, 900], [1500, 900]].forEach((c, i) => {
-      g += '<g class="a-sway" style="transform-origin:' + c[0] + 'px 900px;animation-duration:' +
-        (6 + i) + 's">' +
+      g += '<g>' +
         '<path d="M' + c[0] + ' 900 q-60 -120 -30 -220 q10 90 44 150 q-16 -110 20 -180 ' +
           'q4 110 26 200Z" fill="#D8607E" opacity=".85"/>' +
         '<path d="M' + c[0] + ' 900 q40 -100 90 -140 q-30 80 -50 140Z" fill="#F5A8C0" opacity=".7"/></g>';
     });
-    return strip(g);
+    return strip('<g class="a-rise">' + cols + '</g>' +
+      '<g class="a-windTilt">' + g + '</g>');
   },
 };

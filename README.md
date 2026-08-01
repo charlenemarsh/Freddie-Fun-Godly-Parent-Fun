@@ -1,0 +1,142 @@
+# Who's Your Godly Parent?
+
+A swipe-driven, visually rich personality quiz that plays like a first-person
+journey through the Greek demigod world. Five realms, fifteen questions,
+fourteen possible divine parents.
+
+Built for Freddie, who asked for a Subway-Surfers-style game where a character
+searches, you swipe up / down / left / right or tap the middle to choose, and
+you pick one of the book-one heroes at the start. Both of those ideas are his
+and neither was compromised.
+
+## Play it
+
+Double-click **`index.html`**. That is the whole thing — one file, no install,
+no server, and it works with the wifi off.
+
+## For anyone who wants to change it
+
+```
+node build.js       rebuild index.html from src/
+node simulate.js    10,000 random playthroughs, prints the outcome spread
+node verify.js      render in a real browser, screenshot, check for problems
+```
+
+`index.html` is generated. Edit the files in `src/` and run `node build.js`.
+
+**The content is separated from the code on purpose.** These four files are
+plain English and safe to edit without knowing how to program:
+
+| File | What's in it |
+| :-- | :-- |
+| `src/data/questions.js` | the 15 questions and all 75 answers |
+| `src/data/gods.js` | the 14 gods: cabins, gifts, signature moves, allies |
+| `src/data/heroes.js` | the 5 playable heroes |
+| `src/data/realms.js` | the 5 realms: names, colours, weather, creatures |
+
+After changing a question or an answer, run `node simulate.js`. It checks that
+every god is still reachable and that no single god has taken over.
+
+## What's here
+
+**Tier 1 — all shipped**
+
+- 15 questions, all in-world, second person, present tense. Four of them
+  (1, 5, 8 and 13) carry no text at all — only illustrations.
+- All 75 answers work by swipe, arrow key, WASD **and** direct tap. A player
+  who never works out swiping can still finish.
+- All 14 gods scored with per-god normalisation, question 15 double-weighted.
+- Five realms, each with six parallax layers, its own particle system, its own
+  creatures and a distinct full-screen exit flourish.
+- The claiming sequence and the result card.
+
+**Tier 2 — all shipped**
+
+- PNG card export, working from `file://` (see the note below).
+- The Codex: all 14 gods, undiscovered ones locked as silhouettes.
+- `worldTint` — your answers change the next stretch of world: shadows
+  lengthen, storms gather, things grow, light warms.
+- Per-hero signature colouring.
+
+**Tier 3 — shipped**
+
+- Synthesized audio (Web Audio, no audio files anywhere). Muted by default.
+- The Hunter's Invitation easter egg, calibrated to fire on ~3.9% of runs.
+- Automatic quality downgrade when frames get slow.
+
+Nothing was cut.
+
+## Scoring
+
+Over 10,000 random playthroughs every god lands between **6.3% and 7.9%**,
+against a target band of 3–14%.
+
+```
+node simulate.js            the distribution table
+node simulate.js --skew     checks no god is reachable by spamming one lane
+node simulate.js --hunter   calibrates the easter egg
+```
+
+`simulate.js` loads the real files out of `src/` through Node's `vm` module, so
+it validates exactly the code the browser runs rather than a second copy of the
+rules that could drift.
+
+Two findings worth keeping:
+
+- **Normalisation is doing the work.** Without dividing each god's score by the
+  maximum it could have earned, whichever god appears on the most options wins
+  almost every time.
+- **Hades was originally reachable by just swiping down.** The first `--skew`
+  run showed 34% of Hades wins came from the DOWN lane, because every
+  underworld-flavoured answer had drifted onto the same arm of the plus. The
+  lanes were redistributed; the worst is now 28%, near the 20% ideal.
+
+## Known limits, honestly
+
+**Frame rate could not be verified against the 16.7ms target here.** This was
+built in a headless container with no GPU, so Chromium falls back to
+SwiftShader and rasterises everything on 4 CPU cores. Measured p95 is around
+50ms there — but that number says more about the container than the game.
+`verify.js` prints the renderer next to the frame time so the two are never
+read apart.
+
+What the profiling did find, and fix, is real regardless of hardware:
+
+- Full-screen `mix-blend-mode` overlays were costing ~50ms a frame on their
+  own, because blending forces the compositor to read back the backdrop and
+  blocks layer promotion for everything underneath. Replaced with plain alpha.
+- Around 270 individually animated SVG elements inside the background layers
+  were costing ~30ms a frame in style recalculation. They are now grouped:
+  one animated wrapper moves all the grass, all the ferns, all the tree line.
+  Wind moves everything together anyway, so it also looks more right.
+- A CSS blur on the moving foreground layer forced it to re-rasterise every
+  frame. The depth cue is baked into the art instead.
+
+Together those took the frame time from ~109ms to ~47ms in the software
+renderer. On anything with a GPU there is a lot of headroom, but that is an
+expectation, not a measurement, and it should be checked on the actual device.
+
+**PNG export works from `file://`.** The card is drawn from scratch with
+Canvas 2D primitives rather than by rasterising SVG, which is what would
+otherwise taint the canvas and make `toDataURL()` throw. There is still a
+fallback: if the download is blocked, the card goes full-bleed with the
+buttons hidden and asks for a screenshot instead.
+
+## Accessibility
+
+- `prefers-reduced-motion` is honoured, including the lightning white-out,
+  and there is a manual toggle in the HUD for children who need it when the
+  OS setting is off.
+- Every lane is keyboard-reachable with a visible focus ring, and each
+  junction is announced to screen readers.
+- Lanes are identified by icon and position, never by colour alone.
+- 44px minimum touch targets, 16px minimum body text.
+- Nothing flashes more than three times a second.
+
+## A note on the art
+
+Every illustration here — all 75 answer cards, the collectibles, the god
+sigils, the creatures, all five realms — is hand-authored SVG written into
+`src/art/`. Nothing is traced, embedded, or fetched. These are original
+interpretations of public-domain Greek mythology; the character names are
+used as a personal fan tribute in a non-commercial project made for one child.

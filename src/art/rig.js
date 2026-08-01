@@ -77,15 +77,15 @@ const Rig = (function () {
         '<rect x="24" y="98" width="12" height="8" rx="3" fill="#2A2018"/>' +
       '</g>' +
       '<g id="rgArmB" style="transform-origin:30px 48px">' +
-        '<rect x="12" y="46" width="8.4" height="30" rx="4.2" fill="' + p.skin + '"/>' +
-        '<rect x="12" y="46" width="8.4" height="12" rx="4.2" fill="' + p.top + '"/>' +
-        '<g id="rgProp" transform="translate(9 84)">' + (PROP[h.prop] || PROP.pen)() + '</g>' +
+        '<rect x="15" y="45" width="8.6" height="31" rx="4.3" fill="' + p.skin + '"/>' +
+        '<rect x="15" y="45" width="8.6" height="13" rx="4.3" fill="' + p.top + '"/>' +
+        '<g id="rgProp" transform="translate(12 84)">' + (PROP[h.prop] || PROP.pen)() + '</g>' +
       '</g>' +
 
       // torso
       '<g id="rgTorso" style="transform-origin:30px 76px">' +
-        '<path d="M18 44 q12 -6 24 0 l3 34 q-15 6 -30 0z" fill="' + p.top + '"/>' +
-        '<path d="M18 44 q12 -6 24 0 l1 8 q-13 -5 -26 0z" fill="' + p.trim + '" opacity=".5"/>' +
+        '<path d="M16 44 q14 -7 28 0 l3 34 q-17 6 -34 0z" fill="' + p.top + '"/>' +
+        '<path d="M16 44 q14 -7 28 0 l1 8 q-15 -5 -30 0z" fill="' + p.trim + '" opacity=".5"/>' +
         '<path d="M30 46 v32" stroke="' + p.trim + '" stroke-width="1.2" opacity=".35"/>' +
       '</g>' +
 
@@ -95,8 +95,8 @@ const Rig = (function () {
         '<rect x="26" y="98" width="12.4" height="8" rx="3" fill="#332618"/>' +
       '</g>' +
       '<g id="rgArmF" style="transform-origin:30px 48px">' +
-        '<rect x="40" y="46" width="8.4" height="30" rx="4.2" fill="' + p.skin + '"/>' +
-        '<rect x="40" y="46" width="8.4" height="12" rx="4.2" fill="' + p.top + '"/>' +
+        '<rect x="36.4" y="45" width="8.6" height="31" rx="4.3" fill="' + p.skin + '"/>' +
+        '<rect x="36.4" y="45" width="8.6" height="13" rx="4.3" fill="' + p.top + '"/>' +
       '</g>' +
 
       // head, then hair on top so the silhouette stays clean
@@ -227,11 +227,21 @@ const Rig = (function () {
        there is no animation loop driving it. */
     still(heroKey, pose) {
       const h = HEROES[heroKey] || HEROES.percy;
-      const m = markup(h);
+      let m = markup(h);
+      // a still figure gets no JS-driven transform origins, so pose it with
+      // SVG rotate(angle cx cy) instead — those are in user units and need
+      // no CSS at all
       if (pose === 'awe') {
-        return m.replace('id="rgHead"', 'id="rgHead" transform="rotate(-12 30 44)"')
-                .replace('id="rgArmF"', 'id="rgArmF" transform="rotate(16 30 48)"')
-                .replace('id="rgArmB"', 'id="rgArmB" transform="rotate(-16 30 48)"');
+        m = m.replace('id="rgHead"', 'id="rgHead" transform="rotate(-9 30 44)"')
+             .replace('id="rgArmF"', 'id="rgArmF" transform="rotate(13 30 47)"')
+             .replace('id="rgArmB"', 'id="rgArmB" transform="rotate(-13 30 47)"')
+             .replace('id="rgLegF"', 'id="rgLegF" transform="rotate(4 30 70)"')
+             .replace('id="rgLegB"', 'id="rgLegB" transform="rotate(-4 30 70)"');
+      } else {
+        m = m.replace('id="rgArmF"', 'id="rgArmF" transform="rotate(7 30 47)"')
+             .replace('id="rgArmB"', 'id="rgArmB" transform="rotate(-7 30 47)"')
+             .replace('id="rgLegF"', 'id="rgLegF" transform="rotate(6 30 70)"')
+             .replace('id="rgLegB"', 'id="rgLegB" transform="rotate(-6 30 70)"');
       }
       return m;
     },
