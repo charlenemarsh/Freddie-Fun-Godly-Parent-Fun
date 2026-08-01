@@ -151,7 +151,7 @@ Two findings worth keeping:
   underworld-flavoured answer had drifted onto the same arm of the plus. The
   lanes were redistributed; the worst is now 28%, near the 20% ideal.
 
-## Three bugs worth recording
+## Four bugs worth recording
 
 **The tutorial was inescapable.** On the first junction the "Got it" button
 did nothing — not by mouse, not by touch, not by keyboard — and there was no
@@ -193,10 +193,29 @@ behind the Skip button.
 
 **Frame rate could not be verified against the 16.7ms target here.** This was
 built in a headless container with no GPU, so Chromium falls back to
-SwiftShader and rasterises everything on 4 CPU cores. Measured p95 is around
-50ms there — but that number says more about the container than the game.
-`verify.js` prints the renderer next to the frame time so the two are never
-read apart.
+SwiftShader and rasterises everything on 4 CPU cores. In a clean context the
+measured p95 is 33.4ms — but that number says more about the container than
+the game, and it is quantised to vsync multiples (33.4 = 2 frames, 50 = 3,
+100 = 6), so it moves in steps rather than smoothly. `verify.js` prints the
+renderer next to the frame time so the two are never read apart.
+
+**Treat any frame number from this container with suspicion, including the
+ones below.** Two separate measurement faults turned up while shortening the
+pacing, and both looked exactly like a performance regression:
+
+1. `verify.js` held the RUNNING state open with a fixed 3200ms wait. Once the
+   pacing shortened, the junction had already opened, so it timed five
+   seconds of five animated lane cards instead of the world scrolling.
+2. Even after fixing that, it was still timing inside a page that had already
+   rendered every realm and taken about twenty screenshots at
+   `deviceScaleFactor: 2`. On a software rasteriser that leaves the
+   compositor in no state to be measured.
+
+A paired A/B of the same file — four runs each, before and after the pacing
+changes — gave **33.4ms in a clean context and 83–100ms in the used one**.
+The shorter pacing cost nothing: before was 33.4/33.4/33.4/33.4ms, after was
+33.4/50.0/33.5/33.5ms, and after's frame rate was consistently the higher of
+the two. Frame timing now runs in its own fresh context for that reason.
 
 What the profiling did find, and fix, is real regardless of hardware:
 
@@ -210,9 +229,15 @@ What the profiling did find, and fix, is real regardless of hardware:
 - A CSS blur on the moving foreground layer forced it to re-rasterise every
   frame. The depth cue is baked into the art instead.
 
-Together those took the frame time from ~109ms to ~47ms in the software
-renderer. On anything with a GPU there is a lot of headroom, but that is an
-expectation, not a measurement, and it should be checked on the actual device.
+Those three are real wins regardless of hardware — each was verified by
+ablation, removing one thing at a time and re-measuring. The absolute
+before/after figures previously quoted here came from the flawed harness
+described above and have been removed rather than restated; the ranking of
+the three costs held up, the numbers attached to them did not.
+
+On anything with a GPU there should be a lot of headroom, but that is an
+expectation, not a measurement, and it still needs checking on the actual
+device.
 
 **PNG export works from `file://`.** The card is drawn from scratch with
 Canvas 2D primitives rather than by rasterising SVG, which is what would
@@ -269,9 +294,11 @@ Checked against SPEC §H. Honest status, not aspirational.
 - [x] `node playtest.js` completes all 15 questions on keyboard alone,
       with zero console errors
 - [x] Screenshots reviewed at 390×844 and 1440×900 for every realm
-- [ ] **p95 frame time under 16.7ms — not verified.** See "Known limits" above:
-      this machine has no GPU. Optimised from ~109ms to ~47ms under
-      SwiftShader; needs a check on real hardware.
+- [ ] **p95 frame time under 16.7ms — not verified.** See "Known limits"
+      above: this machine has no GPU, and two separate harness faults made
+      the number look like a regression when it was not. A clean-context
+      paired A/B shows the shortened pacing cost nothing. Still needs a
+      check on real hardware.
 - [x] No layout break between 320px and 1920px
 - [x] `prefers-reduced-motion` honoured, including the lightning white-out
 - [x] PNG export works from `file://`, with a screenshot fallback

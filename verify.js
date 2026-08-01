@@ -59,6 +59,44 @@ async function shot(page, dir, name) {
   process.stdout.write('    ' + name + '\n');
 }
 
+/* A clean page, one state, nothing else touched. Returns p95 in ms.
+   Kept separate from run() so the timing can never inherit the cost of the
+   screenshot pass. */
+async function measureFrameTime(browser, vp) {
+  const context = await browser.newContext({
+    viewport: { width: vp.width, height: vp.height },
+    deviceScaleFactor: 2,
+    reducedMotion: 'no-preference',
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto(URL, { waitUntil: 'load' });
+    await page.waitForFunction(() => window.__game && window.__game.state === 'TITLE');
+    await page.evaluate(() => {
+      window.__game.skipTutorial();
+      window.__game.jumpTo(3);
+      window.__game.setState(window.__game.S.REALM_INTRO);
+    });
+    /* Wait for the RUNNING state itself rather than for a fixed delay. A fixed
+       delay silently measured the wrong thing the moment the pacing was
+       shortened: the junction had already opened, so it reported five seconds
+       of five animated lane cards instead of the world scrolling. */
+    await page.waitForFunction(() => window.__game.state === 'RUNNING', null, { timeout: 20000 });
+    await page.evaluate(() => { window.__game.G.segmentLength = 999; });
+    await wait(800);                            // let the speed ease up to target
+    await page.evaluate(() => { window.__game.resetFrameTimes(); });
+    await wait(5000);
+    const state = await page.evaluate(() => window.__game.state);
+    if (state !== 'RUNNING') {
+      console.log('  WARNING: frame timing sampled in state ' + state + ', not RUNNING');
+      return null;
+    }
+    return await page.evaluate(() => window.__game.p95);
+  } finally {
+    await context.close();
+  }
+}
+
 async function run(vp) {
   const browser = await chromium.launch({
     executablePath: process.env.PW_CHROMIUM || undefined,
@@ -163,28 +201,17 @@ async function run(vp) {
     } catch (e) { return 'unavailable'; }
   });
 
-  /* --- frame timing over a five-second run segment --- */
+  /* --- frame timing over a five-second run segment ---
+         In a FRESH context, deliberately. Measuring in this one gave numbers
+         two to three times worse, and it was the harness's own fault: by this
+         point the page has rendered every realm and taken about twenty
+         screenshots at deviceScaleFactor 2, which on a software rasteriser
+         leaves the compositor in no state to be timed. A paired A/B against
+         the previous build measured 33.4ms in a clean context and 83-100ms in
+         this one, for the same file. Time the game, not the harness. --- */
   let p95 = null;
   if (!QUICK) {
-    await page.evaluate(() => {
-      window.__game.jumpTo(3);
-      window.__game.setState(window.__game.S.REALM_INTRO);
-    });
-    /* Wait for the RUNNING state itself rather than for a fixed delay, then
-       pin the segment open. A fixed delay silently measured the wrong thing
-       the moment the pacing was shortened: the junction had already opened,
-       so this reported five seconds of five animated lane cards instead of
-       five seconds of the world scrolling. */
-    await page.waitForFunction(() => window.__game.state === 'RUNNING', null, { timeout: 15000 });
-    await page.evaluate(() => { window.__game.G.segmentLength = 999; });
-    await wait(600);                            // let the speed ease up to target
-    await page.evaluate(() => { window.__game.resetFrameTimes(); });
-    await wait(5000);
-    const sampled = await page.evaluate(() => window.__game.state);
-    if (sampled !== 'RUNNING') {
-      console.log('  WARNING: frame timing sampled in state ' + sampled + ', not RUNNING');
-    }
-    p95 = await page.evaluate(() => window.__game.p95);
+    p95 = await measureFrameTime(browser, vp);
   }
 
   /* --- the claiming, and the result card, for three different gods --- */
