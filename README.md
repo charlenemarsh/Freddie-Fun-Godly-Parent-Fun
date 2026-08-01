@@ -20,7 +20,15 @@ no server, and it works with the wifi off.
 node build.js       rebuild index.html from src/
 node simulate.js    10,000 random playthroughs, prints the outcome spread
 node verify.js      render in a real browser, screenshot, check for problems
+node playtest.js    play the whole game with keyboard input only
 ```
+
+`verify.js` and `playtest.js` do different jobs and you want both. `verify.js`
+drives the flow through internal hooks, so it never races the animation and
+gets clean screenshots of every state. `playtest.js` presses real keys through
+the real handler and plays all fifteen questions — which is the only way to
+catch input-timing bugs. It found one: a key pressed while the junction cards
+were still blooming used to be silently dropped.
 
 `index.html` is generated. Edit the files in `src/` and run `node build.js`.
 
@@ -165,6 +173,8 @@ Checked against SPEC §H. Honest status, not aspirational.
 
 - [x] One `index.html`, opens by double-click from `file://`, works offline
 - [x] `node verify.js` reports zero console errors and zero network requests
+- [x] `node playtest.js` completes all 15 questions on keyboard alone,
+      with zero console errors
 - [x] Screenshots reviewed at 390×844 and 1440×900 for every realm
 - [ ] **p95 frame time under 16.7ms — not verified.** See "Known limits" above:
       this machine has no GPU. Optimised from ~109ms to ~47ms under
