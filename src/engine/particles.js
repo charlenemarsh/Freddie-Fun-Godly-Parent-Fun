@@ -26,6 +26,14 @@ const Particles = (function () {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
+  /* The canvas is no longer the whole window: on anything wider than a phone
+     the game sits in a portrait frame with the desktop showing either side.
+     Callers hand us viewport coordinates straight out of
+     getBoundingClientRect(), so convert into canvas space here rather than
+     making every call site remember the offset. */
+  function localX(x) { return x - (cv ? cv.getBoundingClientRect().left : 0); }
+  function localY(y) { return y - (cv ? cv.getBoundingClientRect().top : 0); }
+
   const rand = (a, b) => a + Math.random() * (b - a);
 
   function spawn(p, first) {
@@ -192,10 +200,11 @@ const Particles = (function () {
       if (!enabled) return;
       const parts = [];
       const count = Math.round((n || 16) * (typeof G !== 'undefined' ? G.quality : 1));
+      const cx = localX(x), cy = localY(y);
       for (let i = 0; i < count; i++) {
         const a = Math.random() * 6.2832;
         const s = rand(40, 150) * (power || 1);
-        parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+        parts.push({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
                      r: rand(1, 3), a: rand(.5, 1) });
       }
       bursts.push({ parts, t: 0, dur: 0.85, colour: colour || '#FFE9AE', gravity: 60 });
@@ -208,8 +217,8 @@ const Particles = (function () {
       const count = Math.round(26 * (typeof G !== 'undefined' ? G.quality : 1));
       for (let i = 0; i < count; i++) {
         parts.push({
-          x: rect.left + Math.random() * rect.width,
-          y: rect.top + Math.random() * rect.height,
+          x: localX(rect.left) + Math.random() * rect.width,
+          y: localY(rect.top) + Math.random() * rect.height,
           vx: rand(-60, 60), vy: rand(-130, -30),
           r: rand(1, 3.4), a: rand(.4, 1),
         });
@@ -222,10 +231,11 @@ const Particles = (function () {
       if (!enabled) return;
       const parts = [];
       const count = Math.round(90 * (typeof G !== 'undefined' ? G.quality : 1));
+      const cx = localX(x), cy = localY(y);
       for (let i = 0; i < count; i++) {
         const a = Math.random() * 6.2832;
         const s = rand(220, 620);
-        parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6,
+        parts.push({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6,
                      r: rand(1.4, 4), a: rand(.5, 1) });
       }
       bursts.push({ parts, t: 0, dur: 1.6, colour: colour || '#FFE9AE', gravity: 10 });

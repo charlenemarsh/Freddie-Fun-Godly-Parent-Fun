@@ -40,8 +40,19 @@ function buildDOM() {
         '<div id="toggles">' +
           '<button class="tog" id="togSound" aria-pressed="false" aria-label="Sound"></button>' +
           '<button class="tog" id="togMotion" aria-pressed="false" aria-label="Reduce motion"></button>' +
+          '<button class="tog" id="btnLeave" aria-label="Leave the road"></button>' +
         '</div>' +
       '</div>' +
+
+      '<div id="leaveAsk"><div class="ask-inner plate">' +
+        '<h3 class="display">Leave the road?</h3>' +
+        '<p>You will go back to the start. The choices you have made so far ' +
+           'will not be kept.</p>' +
+        '<div class="btn-row">' +
+          '<button class="btn" id="leaveNo">Keep going</button>' +
+          '<button class="btn" id="leaveYes">Leave</button>' +
+        '</div>' +
+      '</div></div>' +
 
       '<div id="junction">' +
         '<div id="prompt" class="plate"></div>' +
@@ -107,6 +118,8 @@ function buildDOM() {
   D.dots = document.getElementById('dots');
   D.togSound = document.getElementById('togSound');
   D.togMotion = document.getElementById('togMotion');
+  D.btnLeave = document.getElementById('btnLeave');
+  D.leaveAsk = document.getElementById('leaveAsk');
   D.junction = document.getElementById('junction');
   D.prompt = document.getElementById('prompt');
   D.lanes = document.getElementById('lanes');
@@ -155,8 +168,8 @@ function measureStrip() {
 /* One copy is as wide as the viewport is tall x 16/9, so two copies cover
    every viewport we target and a third is pure cost. Recomputed on resize. */
 function copiesNeeded() {
-  const copyW = window.innerHeight * (1600 / 900);
-  return Math.max(2, Math.ceil(window.innerWidth / copyW) + 1);
+  const copyW = (stageH || window.innerHeight) * (1600 / 900);
+  return Math.max(2, Math.ceil((stageW || window.innerWidth) / copyW) + 1);
 }
 
 function fillStrips(art) {
@@ -171,12 +184,24 @@ function fillStrips(art) {
 let planeRungs = [];
 let horizonY = 0, groundH = 0;
 
+/* The stage, not the window. On anything wider than a phone the game is
+   letterboxed into a portrait frame, and every piece of projection maths has
+   to work in the frame's coordinates or the road, the collectibles and the
+   creatures all drift off to one side. */
+let stageW = 0, stageH = 0;
+
+function measureStage() {
+  const r = D.stage.getBoundingClientRect();
+  stageW = r.width || window.innerWidth;
+  stageH = r.height || window.innerHeight;
+}
+
 function measurePlane() {
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const scale = Math.max(vw / 1600, vh / 900);
-  const offsetY = (vh - 900 * scale) / 2;
+  measureStage();
+  const scale = Math.max(stageW / 1600, stageH / 900);
+  const offsetY = (stageH - 900 * scale) / 2;
   horizonY = offsetY + PLANE_HORIZON * scale;
-  groundH = vh - horizonY;
+  groundH = stageH - horizonY;
 }
 
 function loadRealm(index) {
@@ -270,7 +295,7 @@ function project(z, lane) {
   const p = Math.pow(u, 2.2);
   return {
     y: horizonY + groundH * p,
-    x: window.innerWidth / 2 + lane * p * window.innerWidth * 0.42,
+    x: stageW / 2 + lane * p * stageW * 0.42,
     s: 0.10 + p * 1.5,
   };
 }
@@ -505,8 +530,52 @@ function paintToggles() {
   D.togMotion.setAttribute('aria-label', G.reduced ? 'Reduced motion on' : 'Reduced motion off');
 }
 
+/* ---- leaving a run ------------------------------------------------------
+   A child ten questions deep who wants to start over should not have to
+   reload the page. This does not undo an answer and never goes back one
+   question — a choice is still instant and final, which is the point of the
+   game. It abandons the whole run and returns to the title.
+
+   It asks first, because losing ten answers to a mis-tap would be miserable,
+   and it takes the modal lock so the confirm cannot answer a junction. */
+function askToLeave() {
+  if (D.leaveAsk.classList.contains('on')) return;
+  Input.setModal(true);
+  D.leaveAsk.classList.add('on');
+  D.live.textContent = 'Leave the road? Your choices so far will not be kept.';
+
+  const close = (leaving) => {
+    D.leaveAsk.classList.remove('on');
+    window.removeEventListener('keydown', onKey, true);
+    D.leaveAsk.removeEventListener('click', onBackdrop);
+    Input.setModal(false);
+    if (leaving) {
+      resetRun();
+      G.realmIndex = 0;
+      loadRealm(0);
+      updateDots();
+      setState(S.TITLE);
+    } else if (G.state === S.JUNCTION) {
+      Input.preArm();
+      Input.arm();                    // hand the junction straight back
+    }
+  };
+  const onKey = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); close(false); }
+  };
+  const onBackdrop = (e) => { if (e.target === D.leaveAsk) close(false); };
+
+  D.leaveAsk.querySelector('#leaveNo').onclick = () => close(false);
+  D.leaveAsk.querySelector('#leaveYes').onclick = () => close(true);
+  D.leaveAsk.addEventListener('click', onBackdrop);
+  window.addEventListener('keydown', onKey, true);
+  D.leaveAsk.querySelector('#leaveNo').focus({ preventScroll: true });
+}
+
 function initHUD() {
   paintToggles();
+  D.btnLeave.innerHTML = Glyph.leave();
+  D.btnLeave.addEventListener('click', askToLeave);
   D.togSound.addEventListener('click', () => {
     G.muted = !G.muted;
     Audio2.unlock();

@@ -1689,6 +1689,13 @@ const Glyph = {
     'stroke-width="7"/><circle cx="50" cy="50" r="9" fill="currentColor"/>' +
     '<path d="M26 74 L74 26" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>'),
 
+  /* leave the road: a doorway with an arrow walking back out through it */
+  leave: () => svgBox('<path d="M58 18 H82 v64 H58" fill="none" stroke="currentColor" ' +
+    'stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M56 50 H20" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>' +
+    '<path d="M34 34 L18 50 L34 66" fill="none" stroke="currentColor" stroke-width="7" ' +
+    'stroke-linecap="round" stroke-linejoin="round"/>'),
+
   /* the title crest: a lightning-lit laurel over an open gateway */
   crest: () => {
     const g = uid('cr');

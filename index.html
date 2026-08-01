@@ -53,13 +53,17 @@
   --t-growth: 0;
   --t-geometry: 0;
 
-  /* the plus-junction sizing, responsive in one place */
-  --card: clamp(92px, min(27vw, 19vh), 186px);
-  --gap: clamp(8px, 2.4vw, 22px);
-
-  --hud-h: clamp(44px, 7vh, 64px);
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+/* Sizing that depends on the frame has to be declared INSIDE the frame:
+   container query units do not resolve on :root, which sits outside it. */
+#stage {
+  /* the plus-junction sizing, responsive in one place */
+  --card: clamp(92px, min(27cqw, 19cqh), 186px);
+  --gap: clamp(8px, 2.4cqw, 22px);
+  --hud-h: clamp(44px, 7cqh, 64px);
 }
 
 html, body {
@@ -75,14 +79,55 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ---- 1b. the phone frame ----------------------------------------------
+   This game is a mobile experience and is composed for exactly one shape: a
+   tall portrait screen. Rather than reflow into a wide desktop window — where
+   the five-lane plus strands itself in the middle of an acre of empty world —
+   it holds a portrait frame everywhere and lets the desktop sit behind it.
+
+   Three things fall out of that, all of them wanted:
+     · every composition is authored against one aspect ratio
+     · the desktop pixel cost collapses (1440x900 was rasterising 4x the
+       pixels of the phone, for a layout nobody was going to use)
+     · what you see on a laptop is what Freddie sees on his phone
+
+   The maths: take the largest 9:19.5 box that fits. On a phone that is the
+   whole screen and there is no letterboxing to see. */
+:root { --frame-w: 9; --frame-h: 19.5; }
+
+body {
+  background:
+    radial-gradient(120% 80% at 50% 0%, #16121F 0%, #0A0810 55%, #060509 100%);
+}
+
 #app {
   position: fixed;
   inset: 0;
+  margin: auto;                        /* centres it inside the inset box */
+  /* everything inside sizes against THIS box, not the browser window, so a
+     desktop window cannot stretch the layout the frame is meant to hold */
+  container-type: size;
+  container-name: frame;
+  width: min(100vw, calc(100dvh * var(--frame-w) / var(--frame-h)));
+  height: min(100dvh, calc(100vw * var(--frame-h) / var(--frame-w)));
   overflow: hidden;
   touch-action: none;                  /* no pinch-zoom, no double-tap-zoom */
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;         /* no long-press menu on the play area */
+}
+
+/* Only dress the frame when there is actually a surround to dress. Keyed off
+   width rather than aspect ratio: a 390x844 phone is a hair wider than 9:19.5
+   and would otherwise pick up desktop chrome on a full-bleed screen. */
+@media (min-width: 720px) {
+  #app {
+    border-radius: 26px;
+    box-shadow:
+      0 0 0 1px rgba(227, 178, 60, 0.30),
+      0 30px 90px rgba(0, 0, 0, 0.75),
+      0 0 120px rgba(227, 178, 60, 0.07);
+  }
 }
 
 /* Anything focusable gets a visible ring. Non-negotiable. */
@@ -306,8 +351,8 @@ html, body {
 #hero {
   position: absolute;
   left: 50%;
-  bottom: clamp(9%, 13vh, 18%);
-  height: clamp(22%, 25vh, 27%);
+  bottom: clamp(9%, 13cqh, 18%);
+  height: clamp(22%, 25cqh, 27%);
   transform: translateX(-50%);
   transform-origin: 50% 100%;
   pointer-events: none;
@@ -321,7 +366,7 @@ html, body {
 #heroShadow {
   position: absolute;
   left: 50%;
-  bottom: clamp(7.4%, 11.4vh, 16.4%);
+  bottom: clamp(7.4%, 11.4cqh, 16.4%);
   width: 16%;
   height: 2.2%;
   transform: translateX(-50%);
@@ -331,6 +376,10 @@ html, body {
 
 /* ---- 7. HUD — corners only, fades back during runs --------------------- */
 
+/* A three-column row rather than three absolutely-positioned pieces. With
+   only two toggles the old layout just about cleared the centred realm name;
+   adding a third put the buttons straight through it. A grid cannot overlap
+   itself, so this holds however many controls end up in the corner. */
 #hud {
   position: absolute;
   inset: 0;
@@ -339,15 +388,19 @@ html, body {
   opacity: 1;
   transition: opacity .55s ease;
   z-index: 30;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-content: start;
+  align-items: start;
+  gap: 8px;
 }
 #hud.dim { opacity: .3; }
 #hud.hidden { opacity: 0; pointer-events: none; }
 #hud > * { pointer-events: auto; }
 
 #satchel {
-  position: absolute; top: calc(10px + var(--safe-t)); left: 10px;
   display: flex; flex-wrap: wrap; gap: 5px;
-  max-width: 30vw;
+  max-width: 24cqw;
   /* two rows at most: a full satchel used to wrap down over the realm name */
   max-height: 71px;
   overflow: hidden;
@@ -368,22 +421,22 @@ html, body {
 }
 
 #realmTag {
-  position: absolute; top: calc(8px + var(--safe-t)); left: 50%;
-  transform: translateX(-50%);
   text-align: center;
-  width: min(52vw, 420px);
+  min-width: 0;                 /* let it shrink instead of pushing the row */
+  padding-top: 2px;
 }
 #realmTag .rname {
   font-family: var(--display);
-  font-size: clamp(12px, 2.6vw, 17px);
+  font-size: clamp(11px, 2.6cqw, 17px);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   letter-spacing: .16em;
   text-transform: uppercase;
   color: var(--gold-lit);
   text-shadow: 0 2px 6px rgba(0,0,0,.8);
 }
-#dots { display: flex; gap: 4px; justify-content: center; margin-top: 5px; }
+#dots { display: flex; gap: 3px; justify-content: center; margin-top: 5px; flex-wrap: nowrap; }
 #dots i {
-  width: 6px; height: 6px; border-radius: 50%;
+  width: 5px; height: 5px; flex: none; border-radius: 50%;
   background: rgba(255, 235, 190, .26);
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
   transition: transform .3s, background .3s;
@@ -392,10 +445,7 @@ html, body {
 #dots i.now  { background: var(--gold-lit); transform: scale(1.75);
                box-shadow: 0 0 9px rgba(255,225,150,.9); }
 
-#toggles {
-  position: absolute; top: calc(8px + var(--safe-t)); right: 8px;
-  display: flex; gap: 6px;
-}
+#toggles { display: flex; gap: 6px; }
 .tog {
   width: 44px; height: 44px;            /* 44px minimum touch target */
   display: grid; place-items: center;
@@ -422,17 +472,17 @@ html, body {
   padding: calc(var(--hud-h) + var(--safe-t) + 4px) 8px calc(10px + var(--safe-b));
   place-items: center;
   grid-template-rows: auto 1fr;
-  gap: clamp(6px, 1.6vh, 18px);
+  gap: clamp(6px, 1.6cqh, 18px);
 }
 #junction.on { display: grid; }
 
 /* the question plaque */
 #prompt {
-  width: min(94vw, 740px);
-  padding: clamp(10px, 2.2vh, 18px) clamp(14px, 3vw, 26px);
+  width: min(94cqw, 740px);
+  padding: clamp(10px, 2.2cqh, 18px) clamp(14px, 3cqw, 26px);
   text-align: center;
   font-family: var(--display);
-  font-size: clamp(16px, 4.1vw, 25px);
+  font-size: clamp(16px, 4.1cqw, 25px);
   line-height: 1.32;
   color: #F6EBD2;
   text-shadow: 0 1px 0 rgba(255,255,255,.15), 0 2px 10px rgba(0,0,0,.7);
@@ -512,7 +562,7 @@ html, body {
 .lane .art { width: 88%; flex: 1 1 auto; min-height: 0; display: grid; place-items: center; }
 .lane .art svg { width: 100%; height: 100%; overflow: visible; }
 .lane .lbl {
-  font-size: clamp(10px, 2.5vw, 13.5px);
+  font-size: clamp(10px, 2.5cqw, 13.5px);
   line-height: 1.14;
   text-align: center;
   color: #F4E7CC;
@@ -584,7 +634,23 @@ html, body {
   background: radial-gradient(60% 50% at 50% 50%, rgba(5,4,10,.45), rgba(5,4,10,.82));
 }
 #tutorial.on { display: grid; }
-#tutorial .tut-inner { text-align: center; padding: 22px; width: min(88vw, 420px); }
+
+/* the confirm before abandoning a run — same furniture as the tutorial */
+#leaveAsk {
+  position: absolute; inset: 0;
+  z-index: 45;
+  display: none;
+  place-items: center;
+  background: radial-gradient(60% 50% at 50% 50%, rgba(5,4,10,.55), rgba(5,4,10,.88));
+}
+#leaveAsk.on { display: grid; }
+#leaveAsk .ask-inner {
+  text-align: center; padding: 22px; width: min(88cqw, 400px);
+}
+#leaveAsk h3 { font-family: var(--display); font-size: 22px; margin-bottom: 8px; }
+#leaveAsk p { font-size: 16px; color: #E9DCC2; margin-bottom: 16px; }
+#leaveAsk .btn-row { justify-content: center; }
+#tutorial .tut-inner { text-align: center; padding: 22px; width: min(88cqw, 420px); }
 #tutorial h3 { font-family: var(--display); font-size: 22px; margin-bottom: 6px; }
 #tutorial p { font-size: 16px; color: #E9DCC2; margin-bottom: 14px; }
 #ghostHand {
@@ -630,26 +696,26 @@ html, body {
    result card or the Codex */
 .overlay-open #junction { opacity: 0; pointer-events: none; transition: opacity .3s ease; }
 
-#titleScreen .title-wrap { text-align: center; width: min(92vw, 620px); }
+#titleScreen .title-wrap { text-align: center; width: min(92cqw, 620px); }
 #titleScreen h1 {
   font-family: var(--display);
-  font-size: clamp(30px, 9vw, 62px);
+  font-size: clamp(30px, 9cqw, 62px);
   line-height: 1.04;
   margin-bottom: 6px;
 }
 #titleScreen .sub {
-  font-size: clamp(13px, 3.2vw, 17px);
+  font-size: clamp(13px, 3.2cqw, 17px);
   letter-spacing: .22em;
   text-transform: uppercase;
   color: rgba(255, 233, 174, .8);
-  margin-bottom: clamp(18px, 4vh, 34px);
+  margin-bottom: clamp(18px, 4cqh, 34px);
 }
-#titleScreen .crest { width: min(46vw, 210px); margin: 0 auto clamp(10px, 3vh, 26px); }
+#titleScreen .crest { width: min(46cqw, 210px); margin: 0 auto clamp(10px, 3cqh, 26px); }
 #titleScreen .crest svg { width: 100%; height: auto; display: block; }
 
 .btn {
   font-family: var(--display);
-  font-size: clamp(15px, 3.6vw, 19px);
+  font-size: clamp(15px, 3.6cqw, 19px);
   letter-spacing: .09em;
   padding: 14px 28px;
   min-height: 48px;
@@ -668,10 +734,10 @@ html, body {
 .btn-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 
 /* --- character select uses the same plus, so the mechanic is taught --- */
-#selectScreen .sel-wrap { width: 100%; display: grid; place-items: center; gap: clamp(6px, 2vh, 16px); }
+#selectScreen .sel-wrap { width: 100%; display: grid; place-items: center; gap: clamp(6px, 2cqh, 16px); }
 #selectScreen h2 {
   font-family: var(--display);
-  font-size: clamp(17px, 4.4vw, 27px);
+  font-size: clamp(17px, 4.4cqw, 27px);
   text-align: center;
 }
 #selectScreen .hint { font-size: 14px; color: rgba(240,228,200,.72); text-align: center; }
@@ -701,7 +767,7 @@ html, body {
 #selLanes .lbl {
   position: absolute;
   left: 0; right: 0; bottom: 5px;
-  font-size: clamp(10px, 2.6vw, 13px);
+  font-size: clamp(10px, 2.6cqw, 13px);
 }
 .pedestal {
   position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
@@ -718,11 +784,11 @@ html, body {
 }
 #flavour {
   min-height: 2.6em;
-  font-size: clamp(13px, 3.2vw, 16px);
+  font-size: clamp(13px, 3.2cqw, 16px);
   font-style: italic;
   color: #F0E2C4;
   text-align: center;
-  width: min(90vw, 520px);
+  width: min(90cqw, 520px);
   text-shadow: 0 1px 4px rgba(0,0,0,.8);
 }
 #flavour .caret {
@@ -742,19 +808,19 @@ html, body {
 #realmIntro .ri-inner { text-align: center; }
 #realmIntro .ri-name {
   font-family: var(--display);
-  font-size: clamp(28px, 8.4vw, 66px);
+  font-size: clamp(28px, 8.4cqw, 66px);
   letter-spacing: .1em;
   animation: riIn 1.1s cubic-bezier(.16,1,.3,1) both;
 }
 #realmIntro .ri-sub {
-  font-size: clamp(12px, 3vw, 16px);
+  font-size: clamp(12px, 3cqw, 16px);
   letter-spacing: .2em; text-transform: uppercase;
   color: rgba(255,236,190,.78);
   margin-top: 8px;
   animation: riIn 1.1s .18s cubic-bezier(.16,1,.3,1) both;
 }
 #realmIntro .ri-rule {
-  height: 1px; width: min(64vw, 340px); margin: 14px auto 0;
+  height: 1px; width: min(64cqw, 340px); margin: 14px auto 0;
   background: linear-gradient(90deg, transparent, var(--gold), transparent);
   animation: riRule 1.2s .3s cubic-bezier(.16,1,.3,1) both;
 }
@@ -800,8 +866,8 @@ html, body {
 #claimSymbol {
   position: absolute;
   left: 50%; top: 23%;
-  width: clamp(120px, 34vw, 260px);
-  height: clamp(120px, 34vw, 260px);
+  width: clamp(120px, 34cqw, 260px);
+  height: clamp(120px, 34cqw, 260px);
   transform: translate(-50%, -50%) scale(.2);
   opacity: 0;
   pointer-events: none;
@@ -819,7 +885,7 @@ html, body {
 /* the light it casts down over the scene */
 #claimBeam {
   position: absolute; left: 50%; top: 21%;
-  width: clamp(180px, 60vw, 560px); height: 74%;
+  width: clamp(180px, 60cqw, 560px); height: 74%;
   transform: translateX(-50%);
   pointer-events: none;
   opacity: 0;
@@ -853,7 +919,7 @@ html, body {
   text-align: center;
   font-family: var(--display);
   font-weight: 600;
-  font-size: clamp(34px, 12vw, 90px);
+  font-size: clamp(34px, 12cqw, 90px);
   letter-spacing: .1em;
   pointer-events: none;
 }
@@ -871,7 +937,7 @@ html, body {
 #claimLine {
   position: absolute; left: 0; right: 0; top: 84%;
   text-align: center;
-  font-size: clamp(14px, 3.6vw, 20px);
+  font-size: clamp(14px, 3.6cqw, 20px);
   letter-spacing: .1em;
   color: #F3E6CA;
   opacity: 0;
@@ -885,7 +951,7 @@ html, body {
 #resultScreen { background: radial-gradient(80% 70% at 50% 0%, rgba(20,16,28,.9), rgba(4,3,8,.97)); }
 
 #card {
-  width: min(94vw, 460px);
+  width: min(94cqw, 460px);
   margin: 0 auto;
   border-radius: 20px;
   overflow: hidden;
@@ -896,7 +962,7 @@ html, body {
 
 .card-hero {
   position: relative;
-  height: clamp(190px, 34vh, 280px);
+  height: clamp(190px, 34cqh, 280px);
   display: grid; place-items: center;
   overflow: hidden;
   background:
@@ -917,10 +983,10 @@ html, body {
 .card-hero .fig { position: relative; height: 82%; width: 46%; margin-top: 9%; }
 .card-hero .fig svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 
-.card-body { padding: 14px clamp(12px, 4vw, 20px) 0; }
-.card-god { font-family: var(--display); font-size: clamp(26px, 7vw, 38px); text-align: center; }
+.card-body { padding: 14px clamp(12px, 4cqw, 20px) 0; }
+.card-god { font-family: var(--display); font-size: clamp(26px, 7cqw, 38px); text-align: center; }
 .card-dom {
-  text-align: center; font-size: clamp(12px, 3vw, 14.5px);
+  text-align: center; font-size: clamp(12px, 3cqw, 14.5px);
   color: rgba(240, 228, 200, .82); letter-spacing: .04em; margin-bottom: 12px;
 }
 .card-sec { margin-top: 13px; }
@@ -975,12 +1041,12 @@ html, body {
 /* ---- 13. codex -------------------------------------------------------- */
 
 #codexScreen { background: radial-gradient(80% 70% at 50% 0%, rgba(18,15,26,.94), rgba(4,3,8,.98)); }
-#codexScreen h2 { font-family: var(--display); font-size: clamp(22px, 6vw, 34px); text-align: center; }
+#codexScreen h2 { font-family: var(--display); font-size: clamp(22px, 6cqw, 34px); text-align: center; }
 #codexCount { text-align: center; color: var(--gold-lit); font-size: 14px; margin-bottom: 14px; letter-spacing: .1em; }
 #codexGrid {
   display: grid; gap: 10px;
   grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
-  width: min(96vw, 900px); margin: 0 auto 16px;
+  width: min(96cqw, 900px); margin: 0 auto 16px;
 }
 .cx-sub {
   text-align: center; font-size: 14px; line-height: 1.5;
@@ -1101,18 +1167,18 @@ html, body {
 
 /* below 360px the plus still has to fit — shrink the gap first, then the card */
 @media (max-width: 359px) {
-  :root { --card: clamp(84px, 26.5vw, 104px); --gap: 6px; }
+  :root { --card: clamp(84px, 26.5cqw, 104px); --gap: 6px; }
   .lane .lbl { font-size: 9.5px; }
   .satchel-item { width: 24px; height: 24px; }
   .satchel-item svg { width: 15px; height: 15px; }
-  #satchel { max-width: 26vw; max-height: 58px; }
-  #realmTag { width: 44vw; }
+  #satchel { max-width: 26cqw; max-height: 58px; }
+  #realmTag { width: 44cqw; }
   #realmTag .rname { font-size: 10px; letter-spacing: .1em; }
 }
 /* landscape phones: very little vertical room, so the plus drives off vh */
 @media (orientation: landscape) and (max-height: 520px) {
-  :root { --card: clamp(74px, 15vh, 128px); --gap: clamp(6px, 1.4vh, 12px); }
-  #prompt { font-size: clamp(13px, 2.2vh, 19px); padding: 6px 16px; }
+  :root { --card: clamp(74px, 15cqh, 128px); --gap: clamp(6px, 1.4cqh, 12px); }
+  #prompt { font-size: clamp(13px, 2.2cqh, 19px); padding: 6px 16px; }
   #junction { gap: 4px; padding-top: calc(var(--safe-t) + 40px); }
 }
 /* big screens: let it breathe rather than stretch */
@@ -1144,7 +1210,7 @@ html, body {
   filter: drop-shadow(0 10px 18px rgba(0,0,0,.6));
   z-index: 2;
 }
-#claimHero { width: clamp(90px, 22vw, 190px); }
+#claimHero { width: clamp(90px, 22cqw, 190px); }
 #claimHero svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #claimSymbol, #claimRing, #claimName, #claimLine { z-index: 3; }
 #claimBeam { z-index: 1; }
@@ -2854,6 +2920,14 @@ const Particles = (function () {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
+  /* The canvas is no longer the whole window: on anything wider than a phone
+     the game sits in a portrait frame with the desktop showing either side.
+     Callers hand us viewport coordinates straight out of
+     getBoundingClientRect(), so convert into canvas space here rather than
+     making every call site remember the offset. */
+  function localX(x) { return x - (cv ? cv.getBoundingClientRect().left : 0); }
+  function localY(y) { return y - (cv ? cv.getBoundingClientRect().top : 0); }
+
   const rand = (a, b) => a + Math.random() * (b - a);
 
   function spawn(p, first) {
@@ -3020,10 +3094,11 @@ const Particles = (function () {
       if (!enabled) return;
       const parts = [];
       const count = Math.round((n || 16) * (typeof G !== 'undefined' ? G.quality : 1));
+      const cx = localX(x), cy = localY(y);
       for (let i = 0; i < count; i++) {
         const a = Math.random() * 6.2832;
         const s = rand(40, 150) * (power || 1);
-        parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+        parts.push({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
                      r: rand(1, 3), a: rand(.5, 1) });
       }
       bursts.push({ parts, t: 0, dur: 0.85, colour: colour || '#FFE9AE', gravity: 60 });
@@ -3036,8 +3111,8 @@ const Particles = (function () {
       const count = Math.round(26 * (typeof G !== 'undefined' ? G.quality : 1));
       for (let i = 0; i < count; i++) {
         parts.push({
-          x: rect.left + Math.random() * rect.width,
-          y: rect.top + Math.random() * rect.height,
+          x: localX(rect.left) + Math.random() * rect.width,
+          y: localY(rect.top) + Math.random() * rect.height,
           vx: rand(-60, 60), vy: rand(-130, -30),
           r: rand(1, 3.4), a: rand(.4, 1),
         });
@@ -3050,10 +3125,11 @@ const Particles = (function () {
       if (!enabled) return;
       const parts = [];
       const count = Math.round(90 * (typeof G !== 'undefined' ? G.quality : 1));
+      const cx = localX(x), cy = localY(y);
       for (let i = 0; i < count; i++) {
         const a = Math.random() * 6.2832;
         const s = rand(220, 620);
-        parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6,
+        parts.push({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6,
                      r: rand(1.4, 4), a: rand(.5, 1) });
       }
       bursts.push({ parts, t: 0, dur: 1.6, colour: colour || '#FFE9AE', gravity: 10 });
@@ -5275,6 +5351,13 @@ const Glyph = {
     'stroke-width="7"/><circle cx="50" cy="50" r="9" fill="currentColor"/>' +
     '<path d="M26 74 L74 26" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>'),
 
+  /* leave the road: a doorway with an arrow walking back out through it */
+  leave: () => svgBox('<path d="M58 18 H82 v64 H58" fill="none" stroke="currentColor" ' +
+    'stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M56 50 H20" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>' +
+    '<path d="M34 34 L18 50 L34 66" fill="none" stroke="currentColor" stroke-width="7" ' +
+    'stroke-linecap="round" stroke-linejoin="round"/>'),
+
   /* the title crest: a lightning-lit laurel over an open gateway */
   crest: () => {
     const g = uid('cr');
@@ -7008,8 +7091,13 @@ const Junction = (function () {
         Particles.burst(r.left + r.width / 2, r.top + r.height / 2, laneGlow(opt), 30, 1.5);
       } else {
         const r = el.getBoundingClientRect();
-        el.style.setProperty('--shatter-x', ((r.left + r.width / 2) - window.innerWidth / 2) * 0.22 + 'px');
-        el.style.setProperty('--shatter-y', ((r.top + r.height / 2) - window.innerHeight / 2) * 0.22 - 30 + 'px');
+        // outward from the centre of the STAGE, which is not the centre of
+        // the window once the game is letterboxed into its portrait frame
+        const sr = D.stage.getBoundingClientRect();
+        el.style.setProperty('--shatter-x',
+          ((r.left + r.width / 2) - (sr.left + sr.width / 2)) * 0.22 + 'px');
+        el.style.setProperty('--shatter-y',
+          ((r.top + r.height / 2) - (sr.top + sr.height / 2)) * 0.22 - 30 + 'px');
         el.style.setProperty('--shatter-rot', ((Math.random() * 24) - 12).toFixed(1) + 'deg');
         el.classList.add('shatter');
         Particles.shatter(r, '#FFE9AE');
@@ -7231,7 +7319,8 @@ const Claiming = (function () {
     // 4. the shockwave, and the crowd kneeling in a wave from the front row back
     after(3300, () => {
       D.claimRing.classList.add('burst');
-      Particles.shockwave(window.innerWidth / 2, window.innerHeight * 0.23, c[2]);
+      const sr = D.stage.getBoundingClientRect();
+      Particles.shockwave(sr.left + sr.width / 2, sr.top + sr.height * 0.23, c[2]);
       Audio2.thunder();
       const rows = D.claimStage.querySelectorAll('.cwd');
       rows.forEach((el) => {
@@ -7889,8 +7978,19 @@ function buildDOM() {
         '<div id="toggles">' +
           '<button class="tog" id="togSound" aria-pressed="false" aria-label="Sound"></button>' +
           '<button class="tog" id="togMotion" aria-pressed="false" aria-label="Reduce motion"></button>' +
+          '<button class="tog" id="btnLeave" aria-label="Leave the road"></button>' +
         '</div>' +
       '</div>' +
+
+      '<div id="leaveAsk"><div class="ask-inner plate">' +
+        '<h3 class="display">Leave the road?</h3>' +
+        '<p>You will go back to the start. The choices you have made so far ' +
+           'will not be kept.</p>' +
+        '<div class="btn-row">' +
+          '<button class="btn" id="leaveNo">Keep going</button>' +
+          '<button class="btn" id="leaveYes">Leave</button>' +
+        '</div>' +
+      '</div></div>' +
 
       '<div id="junction">' +
         '<div id="prompt" class="plate"></div>' +
@@ -7956,6 +8056,8 @@ function buildDOM() {
   D.dots = document.getElementById('dots');
   D.togSound = document.getElementById('togSound');
   D.togMotion = document.getElementById('togMotion');
+  D.btnLeave = document.getElementById('btnLeave');
+  D.leaveAsk = document.getElementById('leaveAsk');
   D.junction = document.getElementById('junction');
   D.prompt = document.getElementById('prompt');
   D.lanes = document.getElementById('lanes');
@@ -8004,8 +8106,8 @@ function measureStrip() {
 /* One copy is as wide as the viewport is tall x 16/9, so two copies cover
    every viewport we target and a third is pure cost. Recomputed on resize. */
 function copiesNeeded() {
-  const copyW = window.innerHeight * (1600 / 900);
-  return Math.max(2, Math.ceil(window.innerWidth / copyW) + 1);
+  const copyW = (stageH || window.innerHeight) * (1600 / 900);
+  return Math.max(2, Math.ceil((stageW || window.innerWidth) / copyW) + 1);
 }
 
 function fillStrips(art) {
@@ -8020,12 +8122,24 @@ function fillStrips(art) {
 let planeRungs = [];
 let horizonY = 0, groundH = 0;
 
+/* The stage, not the window. On anything wider than a phone the game is
+   letterboxed into a portrait frame, and every piece of projection maths has
+   to work in the frame's coordinates or the road, the collectibles and the
+   creatures all drift off to one side. */
+let stageW = 0, stageH = 0;
+
+function measureStage() {
+  const r = D.stage.getBoundingClientRect();
+  stageW = r.width || window.innerWidth;
+  stageH = r.height || window.innerHeight;
+}
+
 function measurePlane() {
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const scale = Math.max(vw / 1600, vh / 900);
-  const offsetY = (vh - 900 * scale) / 2;
+  measureStage();
+  const scale = Math.max(stageW / 1600, stageH / 900);
+  const offsetY = (stageH - 900 * scale) / 2;
   horizonY = offsetY + PLANE_HORIZON * scale;
-  groundH = vh - horizonY;
+  groundH = stageH - horizonY;
 }
 
 function loadRealm(index) {
@@ -8119,7 +8233,7 @@ function project(z, lane) {
   const p = Math.pow(u, 2.2);
   return {
     y: horizonY + groundH * p,
-    x: window.innerWidth / 2 + lane * p * window.innerWidth * 0.42,
+    x: stageW / 2 + lane * p * stageW * 0.42,
     s: 0.10 + p * 1.5,
   };
 }
@@ -8354,8 +8468,52 @@ function paintToggles() {
   D.togMotion.setAttribute('aria-label', G.reduced ? 'Reduced motion on' : 'Reduced motion off');
 }
 
+/* ---- leaving a run ------------------------------------------------------
+   A child ten questions deep who wants to start over should not have to
+   reload the page. This does not undo an answer and never goes back one
+   question — a choice is still instant and final, which is the point of the
+   game. It abandons the whole run and returns to the title.
+
+   It asks first, because losing ten answers to a mis-tap would be miserable,
+   and it takes the modal lock so the confirm cannot answer a junction. */
+function askToLeave() {
+  if (D.leaveAsk.classList.contains('on')) return;
+  Input.setModal(true);
+  D.leaveAsk.classList.add('on');
+  D.live.textContent = 'Leave the road? Your choices so far will not be kept.';
+
+  const close = (leaving) => {
+    D.leaveAsk.classList.remove('on');
+    window.removeEventListener('keydown', onKey, true);
+    D.leaveAsk.removeEventListener('click', onBackdrop);
+    Input.setModal(false);
+    if (leaving) {
+      resetRun();
+      G.realmIndex = 0;
+      loadRealm(0);
+      updateDots();
+      setState(S.TITLE);
+    } else if (G.state === S.JUNCTION) {
+      Input.preArm();
+      Input.arm();                    // hand the junction straight back
+    }
+  };
+  const onKey = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); close(false); }
+  };
+  const onBackdrop = (e) => { if (e.target === D.leaveAsk) close(false); };
+
+  D.leaveAsk.querySelector('#leaveNo').onclick = () => close(false);
+  D.leaveAsk.querySelector('#leaveYes').onclick = () => close(true);
+  D.leaveAsk.addEventListener('click', onBackdrop);
+  window.addEventListener('keydown', onKey, true);
+  D.leaveAsk.querySelector('#leaveNo').focus({ preventScroll: true });
+}
+
 function initHUD() {
   paintToggles();
+  D.btnLeave.innerHTML = Glyph.leave();
+  D.btnLeave.addEventListener('click', askToLeave);
   D.togSound.addEventListener('click', () => {
     G.muted = !G.muted;
     Audio2.unlock();

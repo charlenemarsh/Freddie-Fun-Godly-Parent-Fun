@@ -58,6 +58,11 @@ every god is still reachable and that no single god has taken over.
   creatures and a distinct full-screen exit flourish.
 - The claiming sequence and the result card.
 
+**Also shipped, after playtesting**
+
+- Mobile-only presentation: a portrait frame held at every window size.
+- Leave the road: abandon a run and go back to the title, with a confirm.
+
 **Tier 2 — all shipped**
 
 - PNG card export, working from `file://` (see the note below).
@@ -100,6 +105,60 @@ creatures were laid out for a five-second stroll and would otherwise have sat
 beyond the end of the road, never reached. They are now placed against a
 travel budget derived from the realm's own speed, so the spacing follows the
 pacing automatically if it is ever tuned again.
+
+## Mobile only, everywhere
+
+This is a phone game and it is now composed for exactly one shape: a tall
+portrait screen. It no longer reflows into a wide desktop window — on anything
+bigger than a phone it holds a 9:19.5 frame in the middle of the screen and
+lets the desktop sit behind it.
+
+That is not a cosmetic choice. Three things follow from it:
+
+- **One shape to author against.** Every composition — the five-lane plus, the
+  parallax horizon, the result card — was being asked to work at both 390px
+  and 1920px wide. At the wide end the plus stranded itself in the middle of
+  an acre of empty world. Now there is one target.
+- **What you see on a laptop is what Freddie sees on his phone.** Useful for
+  showing someone without handing over the device.
+- **The desktop got dramatically faster**, because it stopped rasterising four
+  times the pixels for a layout nobody was going to use:
+
+  | 1440×900 | frame time | frame rate | quality |
+  | :-- | --: | --: | :-- |
+  | before | 100ms | 14–16fps | auto-downgraded, 18 particles |
+  | after | 33–50ms | ~34fps | full, 70 particles |
+
+  It no longer has to degrade itself to keep up.
+
+Two things had to change underneath for this to be correct rather than just
+letterboxed:
+
+- **Everything sized against the viewport now sizes against the frame.** 37
+  `vw` and 14 `vh` values became container query units, and `#app` is a size
+  container. Left alone, the lane cards would have been sized from a 1440px
+  window and spilled straight out of a 415px frame.
+- **Everything that assumed the window was the stage was corrected.** The road
+  projection, the strip tiling, the shatter vectors and the claiming shockwave
+  all measured from `window.innerWidth/innerHeight`. Once the stage is inset
+  those are different numbers, and the road would have drifted off to one
+  side. The particle canvas converts viewport coordinates into its own space,
+  so call sites did not have to learn about the offset.
+
+## Leaving a run
+
+There is a door icon in the HUD. It abandons the run and returns to the
+title, asking first, because losing ten answers to a mis-tap would be
+miserable.
+
+It is **not** an undo and does not step back a question. A choice is still
+instant and final — that is the point of the game, and the "no back button"
+rule in CLAUDE.md still holds for answers. What it fixes is a child ten
+questions deep who simply wants to start again, and whose only previous
+option was to reload the page.
+
+The confirm takes the modal input lock, so opening it can never register an
+answer, and cancelling hands the junction straight back.
 
 ## The Codex
 
@@ -198,12 +257,12 @@ quantised to vsync multiples (33.4 = 2 frames, 50 = 3, 100 = 6), so it moves
 in steps rather than smoothly. `verify.js` prints the renderer next to the
 frame time so the two are never read apart.
 
-**The desktop number is meaningless here and should not be read as a result.**
-`verify.js` uses `deviceScaleFactor: 2`, so the 1440×900 pass is really
-2880×1800 — 5.2 megapixels software-rasterised every frame. It measures 100ms
-at about 15fps, and the game's own quality auto-downgrade correctly fires and
-drops the particle count. That happens identically on the build from before
-any of these changes, so it is the container, not the game.
+**The desktop figure used to be meaningless and is now merely pessimistic.**
+`verify.js` uses `deviceScaleFactor: 2`, so the 1440×900 pass was really
+2880×1800 — 5.2 megapixels software-rasterised every frame, measuring 100ms at
+about 15fps with the quality auto-downgrade firing. Moving to the portrait
+frame cut that to a 415×900 stage: 33–50ms at ~34fps, at full quality. It is
+still SwiftShader and still not a statement about real hardware.
 
 **Three measurement faults turned up while shortening the pacing, and all
 three looked exactly like a performance regression.** Recorded because each
@@ -318,7 +377,8 @@ Checked against SPEC §H. Honest status, not aspirational.
       the number look like a regression when it was not. A paired A/B with
       separate browser launches shows the shortened pacing cost nothing at
       either viewport. Still needs a check on real hardware.
-- [x] No layout break between 320px and 1920px
+- [x] Holds its portrait frame from 320px to 1920px, with no layout break
+      and no horizontal page scroll at any width
 - [x] `prefers-reduced-motion` honoured, including the lightning white-out
 - [x] PNG export works from `file://`, with a screenshot fallback
 - [x] Audio muted by default; unmuting never throws

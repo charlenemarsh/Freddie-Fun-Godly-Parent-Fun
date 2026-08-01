@@ -106,7 +106,8 @@ const Claiming = (function () {
     // 4. the shockwave, and the crowd kneeling in a wave from the front row back
     after(3300, () => {
       D.claimRing.classList.add('burst');
-      Particles.shockwave(window.innerWidth / 2, window.innerHeight * 0.23, c[2]);
+      const sr = D.stage.getBoundingClientRect();
+      Particles.shockwave(sr.left + sr.width / 2, sr.top + sr.height * 0.23, c[2]);
       Audio2.thunder();
       const rows = D.claimStage.querySelectorAll('.cwd');
       rows.forEach((el) => {

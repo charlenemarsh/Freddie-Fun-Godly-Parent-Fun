@@ -93,8 +93,13 @@ const Junction = (function () {
         Particles.burst(r.left + r.width / 2, r.top + r.height / 2, laneGlow(opt), 30, 1.5);
       } else {
         const r = el.getBoundingClientRect();
-        el.style.setProperty('--shatter-x', ((r.left + r.width / 2) - window.innerWidth / 2) * 0.22 + 'px');
-        el.style.setProperty('--shatter-y', ((r.top + r.height / 2) - window.innerHeight / 2) * 0.22 - 30 + 'px');
+        // outward from the centre of the STAGE, which is not the centre of
+        // the window once the game is letterboxed into its portrait frame
+        const sr = D.stage.getBoundingClientRect();
+        el.style.setProperty('--shatter-x',
+          ((r.left + r.width / 2) - (sr.left + sr.width / 2)) * 0.22 + 'px');
+        el.style.setProperty('--shatter-y',
+          ((r.top + r.height / 2) - (sr.top + sr.height / 2)) * 0.22 - 30 + 'px');
         el.style.setProperty('--shatter-rot', ((Math.random() * 24) - 12).toFixed(1) + 'deg');
         el.classList.add('shatter');
         Particles.shatter(r, '#FFE9AE');
