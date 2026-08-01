@@ -118,6 +118,7 @@ const Select = (function () {
         D.hud.classList.add('dim');
         focused = null;
         focus('CENTRE');
+        Input.preArm();
         Input.arm();
         const first = D.select.querySelector('.lane-CENTRE');
         if (first) first.focus({ preventScroll: true });

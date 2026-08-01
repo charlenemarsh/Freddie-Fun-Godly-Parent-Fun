@@ -146,6 +146,7 @@ const Junction = (function () {
 
       D.junction.classList.add('on');
       D.vignette.classList.add('tight');
+      Input.preArm();          // hold any answer given during the bloom
       D.hud.classList.remove('dim');
 
       // announce it for screen readers and for anyone with the sound off

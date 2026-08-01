@@ -3253,6 +3253,8 @@ const Input = (function () {
   let opts = {};
   let active = false;          // is a junction currently accepting input?
   let locked = false;          // debounce — set on commit, cleared by arm()
+  let buffering = false;       // the cards are still blooming
+  let pending = null;          // an answer given during the bloom, held over
   let dragging = false;
   let startX = 0, startY = 0, startT = 0;
   let lastX = 0, lastY = 0, lastT = 0;
@@ -3280,7 +3282,12 @@ const Input = (function () {
   }
 
   function commit(dir, how) {
-    if (!active || locked || !dir) return;
+    if (!dir) return;
+    // A player who answers while the cards are still blooming used to get
+    // nothing at all — the press was swallowed and they had to press again.
+    // Hold it instead and play it the moment the junction opens.
+    if (!active && buffering && !locked) { pending = { dir, how }; return; }
+    if (!active || locked) return;
     locked = true;
     active = false;
     clearDrag();
@@ -3297,7 +3304,7 @@ const Input = (function () {
   /* ---- pointer ---------------------------------------------------------- */
 
   function onDown(e) {
-    if (!active || locked) return;
+    if ((!active && !buffering) || locked) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     dragging = true;
     pointerId = e.pointerId;
@@ -3360,7 +3367,7 @@ const Input = (function () {
   };
 
   function onKey(e) {
-    if (!active || locked) return;
+    if ((!active && !buffering) || locked) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const mapped = KEYS[e.key];
     if (mapped) {
@@ -3392,19 +3399,34 @@ const Input = (function () {
       // clicking a lane card directly always works, swipe or no swipe
       host.addEventListener('click', (e) => {
         const lane = e.target.closest && e.target.closest('.lane');
-        if (lane && active && !locked) commit(lane.dataset.dir, 'click');
+        if (lane && (active || buffering) && !locked) commit(lane.dataset.dir, 'click');
       });
       // no long-press context menu on the play area
       host.addEventListener('contextmenu', (e) => e.preventDefault());
     },
 
-    /* Open the junction for input. Clears the debounce lock. */
-    arm() { active = true; locked = false; clearDrag(); },
+    /* Called as a junction starts blooming. From here until arm(), an answer
+       is remembered rather than dropped. */
+    preArm() { buffering = true; pending = null; locked = false; },
+
+    /* Open the junction for input. Clears the debounce lock, and plays back
+       anything the player pressed while the cards were still arriving. */
+    arm() {
+      active = true;
+      locked = false;
+      buffering = false;
+      clearDrag();
+      if (pending) {
+        const p = pending;
+        pending = null;
+        commit(p.dir, p.how);
+      }
+    },
 
     /* Close it — used during the resolve animation and between junctions. */
-    disarm() { active = false; clearDrag(); },
+    disarm() { active = false; buffering = false; pending = null; clearDrag(); },
 
-    isArmed() { return active && !locked; },
+    isArmed() { return (active || buffering) && !locked; },
 
     /* Used by verify.js and the DEV hooks to answer without a real gesture. */
     force(dir) { const wasLocked = locked; locked = false; active = true;
@@ -6725,6 +6747,7 @@ const Select = (function () {
         D.hud.classList.add('dim');
         focused = null;
         focus('CENTRE');
+        Input.preArm();
         Input.arm();
         const first = D.select.querySelector('.lane-CENTRE');
         if (first) first.focus({ preventScroll: true });
@@ -6890,6 +6913,7 @@ const Junction = (function () {
 
       D.junction.classList.add('on');
       D.vignette.classList.add('tight');
+      Input.preArm();          // hold any answer given during the bloom
       D.hud.classList.remove('dim');
 
       // announce it for screen readers and for anyone with the sound off
