@@ -97,6 +97,17 @@ function buildDOM() {
       '<div id="dev"></div>' +
     '</div>';
 
+  /* Shown only on a phone held sideways, where the plus genuinely does not
+     fit. It lives on <body>, NOT inside #app: #app is a size container, and
+     container-type implies layout containment, which makes it the containing
+     block for position:fixed descendants. Left inside, this overlay would be
+     trapped in the 219px-wide frame it is there to apologise for. */
+  const rot = document.createElement('div');
+  rot.id = 'rotate';
+  rot.innerHTML = '<div><div class="r-phone"></div>' +
+    '<p>Turn your phone upright</p></div>';
+  document.body.appendChild(rot);
+
   D.stage = document.getElementById('stage');
   D.L = [0, 1, 2, 3, 4].map((i) => document.getElementById('L' + i));
   D.strips = [0, 1, 2, 4].map((i) => document.getElementById('L' + i).querySelector('.strip'));

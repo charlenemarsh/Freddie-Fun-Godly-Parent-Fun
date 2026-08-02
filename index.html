@@ -60,8 +60,13 @@
 /* Sizing that depends on the frame has to be declared INSIDE the frame:
    container query units do not resolve on :root, which sits outside it. */
 #stage {
-  /* the plus-junction sizing, responsive in one place */
-  --card: clamp(92px, min(27cqw, 19cqh), 186px);
+  /* The plus-junction sizing, responsive in one place.
+     The height bound is the tight one on purpose. Bounded mainly by width,
+     the plus grew taller in proportion on a squatter frame and the DOWN card
+     swallowed the hero standing behind it — 72px of him showed on a tall
+     phone and 22px on a short one. Keyed to height, the plus takes the same
+     share of the screen at every shape in the frame's range. */
+  --card: clamp(92px, min(27cqw, 12.6cqh), 186px);
   --gap: clamp(8px, 2.4cqw, 22px);
   --hud-h: clamp(44px, 7cqh, 64px);
 }
@@ -91,9 +96,18 @@ html, body {
        pixels of the phone, for a layout nobody was going to use)
      · what you see on a laptop is what Freddie sees on his phone
 
-   The maths: take the largest 9:19.5 box that fits. On a phone that is the
-   whole screen and there is no letterboxing to see. */
-:root { --frame-w: 9; --frame-h: 19.5; }
+   The shape is a RANGE, not a fixed ratio, and that matters. Pinning it to
+   exactly 9:19.5 meant the height was capped by the window and the width was
+   then forced down to 46% of it — so in a short, wide panel the game filled
+   about a quarter of the space and looked tiny. Now it always takes the full
+   height and only the WIDTH is capped, anywhere between a tall phone
+   (9:19.5) and a stubby one (9:16). Both are real phone shapes, so it still
+   reads as a phone at either end, and it fills far more of whatever it is
+   given. On an actual phone it is the whole screen either way. */
+:root {
+  --frame-widest: 0.5625;    /* 9:16  — squarest it may get */
+  --frame-tallest: 2.1667;   /* 9:19.5 as h/w — tallest it may get */
+}
 
 body {
   background:
@@ -108,8 +122,8 @@ body {
      desktop window cannot stretch the layout the frame is meant to hold */
   container-type: size;
   container-name: frame;
-  width: min(100vw, calc(100dvh * var(--frame-w) / var(--frame-h)));
-  height: min(100dvh, calc(100vw * var(--frame-h) / var(--frame-w)));
+  width: min(100vw, calc(100dvh * var(--frame-widest)));
+  height: min(100dvh, calc(100vw * var(--frame-tallest)));
   overflow: hidden;
   touch-action: none;                  /* no pinch-zoom, no double-tap-zoom */
   user-select: none;
@@ -129,6 +143,42 @@ body {
       0 0 120px rgba(227, 178, 60, 0.07);
   }
 }
+
+/* ---- 1c. turn the phone upright ---------------------------------------
+   A phone held sideways gives this game a 219px-wide frame, and the plus
+   genuinely does not fit — the bottom card clips off the screen. Rather than
+   ship a broken layout for a shape the game was never built for, ask for the
+   phone the right way up.
+
+   Keyed to landscape AND a short viewport, so a laptop window — which is also
+   landscape but plenty tall — never sees it. */
+#rotate {
+  position: fixed; inset: 0; z-index: 90;
+  display: none;
+  place-items: center;
+  text-align: center;
+  padding: 24px;
+  background: radial-gradient(70% 70% at 50% 50%, #14101E, #07060B);
+  color: var(--vellum);
+}
+#rotate .r-phone {
+  width: 62px; height: 100px; margin: 0 auto 20px;
+  border: 3px solid var(--gold); border-radius: 12px;
+  animation: rotateHint 2.6s ease-in-out infinite;
+}
+#rotate p {
+  font-family: var(--display);
+  font-size: 19px; letter-spacing: .08em; color: var(--gold-lit);
+}
+@keyframes rotateHint {
+  0%, 40%   { transform: rotate(-90deg); }
+  60%, 100% { transform: rotate(0deg); }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  #rotate { display: grid; }
+}
+/* honour reduced motion: state it, do not animate it */
+.reduced #rotate .r-phone { animation: none !important; }
 
 /* Anything focusable gets a visible ring. Non-negotiable. */
 :focus-visible {
@@ -8034,6 +8084,17 @@ function buildDOM() {
       '<div class="sr" id="live" role="status" aria-live="polite"></div>' +
       '<div id="dev"></div>' +
     '</div>';
+
+  /* Shown only on a phone held sideways, where the plus genuinely does not
+     fit. It lives on <body>, NOT inside #app: #app is a size container, and
+     container-type implies layout containment, which makes it the containing
+     block for position:fixed descendants. Left inside, this overlay would be
+     trapped in the 219px-wide frame it is there to apologise for. */
+  const rot = document.createElement('div');
+  rot.id = 'rotate';
+  rot.innerHTML = '<div><div class="r-phone"></div>' +
+    '<p>Turn your phone upright</p></div>';
+  document.body.appendChild(rot);
 
   D.stage = document.getElementById('stage');
   D.L = [0, 1, 2, 3, 4].map((i) => document.getElementById('L' + i));

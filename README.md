@@ -108,10 +108,29 @@ pacing automatically if it is ever tuned again.
 
 ## Mobile only, everywhere
 
-This is a phone game and it is now composed for exactly one shape: a tall
-portrait screen. It no longer reflows into a wide desktop window — on anything
-bigger than a phone it holds a 9:19.5 frame in the middle of the screen and
-lets the desktop sit behind it.
+This is a phone game and it is composed for a phone. It does not reflow into
+a wide desktop window — it holds a portrait frame and lets the desktop sit
+behind it.
+
+**The frame is a range, not a fixed ratio, and that matters.** Pinned to
+exactly 9:19.5, the height was capped by the window and the width was then
+forced down to 46% of it, so in a short wide panel the game filled about a
+quarter of the space and looked tiny. It now always takes the full height and
+only the *width* is capped, anywhere between a tall phone (9:19.5) and a
+stubby one (9:16) — both real phone shapes. How much of the window it fills:
+
+| window | before | after |
+| :-- | --: | --: |
+| 390×844 phone | 100% | 100% |
+| 360×640 short phone | 82% | **100%** |
+| 1000×700 panel | 32% | **39%** |
+| 1440×900 laptop | 29% | **35%** |
+| 820×1180 tablet | 66% | **81%** |
+
+Widening the frame cost a little on desktop — 1440×900 went from ~34fps to
+~31fps under the software renderer, occasionally tripping the quality
+auto-downgrade — which is a fair trade for a game that is actually big enough
+to see. The phone viewport is untouched at ~46fps, full quality.
 
 That is not a cosmetic choice. Three things follow from it:
 
@@ -131,13 +150,24 @@ That is not a cosmetic choice. Three things follow from it:
 
   It no longer has to degrade itself to keep up.
 
-Two things had to change underneath for this to be correct rather than just
+**A phone held sideways gets an apology, not a broken layout.** At 844×390
+the frame is 219px wide and the plus genuinely does not fit — the bottom card
+clipped off screen. Landscape on a short viewport now shows "turn your phone
+upright" instead. A laptop window is also landscape but plenty tall, so it
+never sees it.
+
+Three things had to change underneath for this to be correct rather than just
 letterboxed:
 
 - **Everything sized against the viewport now sizes against the frame.** 37
   `vw` and 14 `vh` values became container query units, and `#app` is a size
   container. Left alone, the lane cards would have been sized from a 1440px
   window and spilled straight out of a 415px frame.
+- **The plus is bounded by height, not width.** Bounded mainly by width, it
+  grew taller in proportion on a squatter frame and the DOWN card swallowed
+  the hero standing behind it — 72px of him showed on a tall phone and 22px
+  on a short one. Keyed to height, it takes the same share of the screen at
+  every shape in the range.
 - **Everything that assumed the window was the stage was corrected.** The road
   projection, the strip tiling, the shatter vectors and the claiming shockwave
   all measured from `window.innerWidth/innerHeight`. Once the stage is inset
