@@ -141,14 +141,11 @@ That is not a cosmetic choice. Three things follow from it:
 - **What you see on a laptop is what Freddie sees on his phone.** Useful for
   showing someone without handing over the device.
 - **The desktop got dramatically faster**, because it stopped rasterising four
-  times the pixels for a layout nobody was going to use:
-
-  | 1440×900 | frame time | frame rate | quality |
-  | :-- | --: | --: | :-- |
-  | before | 100ms | 14–16fps | auto-downgraded, 18 particles |
-  | after | 33–50ms | ~34fps | full, 70 particles |
-
-  It no longer has to degrade itself to keep up.
+  times the pixels for a layout nobody was going to use. At 1440×900 under the
+  software renderer it went from 100ms and 14–16fps, with the quality
+  auto-downgrade permanently on, to roughly 50ms and ~31fps. (It was ~34fps at
+  full quality with the original narrower frame; widening it to fill more of
+  the window gave some of that back. See the table above.)
 
 **A phone held sideways gets an apology, not a broken layout.** At 844×390
 the frame is 219px wide and the plus genuinely does not fit — the bottom card
